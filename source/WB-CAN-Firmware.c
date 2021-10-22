@@ -14,6 +14,8 @@
 #include "MK66F18.h"
 #include "fsl_debug_console.h"
 
+#include <task.h>
+
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
@@ -34,11 +36,34 @@ int main(void) {
     /* Init FSL debug console. */
     BOARD_InitDebugConsole();
 #endif
-
+    BaseType_t error;
     printf("Hello World\n");
 
-    xTaskCreate(blinkTask, "Blink LED Task", 1024, NULL, 0);
-    xTaskCreate(testTask, "Test Debugging Task", 1024, NULL, 0);
+    // Create the BlinkTest
+    if ((error = xTaskCreate(
+    blinkTask,
+	"Blink LED Task",
+    1024,
+	NULL,
+	0,
+	NULL)) != pdPASS){
+    	printf("Task init failed: %ld\n", error);
+    	for (;;)
+    		;
+
+    };
+
+
+    if ((error =  xTaskCreate(testTask,
+    "Test Debugging Task",
+	1024,
+	NULL,
+	0,
+	NULL)) != pdPASS) {
+    	printf("Task init failed: %ld\n", error);
+    	for (;;)
+    	    ;
+    };
 
     vTaskStartScheduler();
 }
@@ -50,6 +75,7 @@ static void blinkTask(void *pv) {
 	while(1) {
 
 		vTaskDelay(pdMS_TO_TICKS(500));
+		printf("BLINK");
 	}
 }
 
