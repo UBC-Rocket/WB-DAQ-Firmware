@@ -29,7 +29,7 @@
 #define DSPI_MASTER_CLK_FREQ     CLOCK_GetFreq((DSPI0_CLK_SRC))
 #define EXAMPLE_DSPI_MASTER_BASEADDR ((SPI_Type *)EXAMPLE_DSPI_MASTER_BASE)
 
-#define TRANSFER_SIZE     (256)     /*! Transfer size */
+#define TRANSFER_SIZE     (16)     /*! Transfer size */
 #define TRANSFER_BAUDRATE (500000U) /*! Transfer baudrate - 500k */
 
 
@@ -62,7 +62,6 @@ int main(void) {
     NVIC_SetPriority(EXAMPLE_DSPI_MASTER_IRQN, 3);
 
     BaseType_t error;
-    printf("Hello World\n");
 
     // Create the BlinkTest
     if ((error = xTaskCreate(
@@ -119,7 +118,6 @@ static void blinkTask(void *pv) {
 
 static void testTask(void *pv) {
 	while(1) {
-
 		vTaskDelay(pdMS_TO_TICKS(500));
 	}
 }
@@ -137,23 +135,26 @@ static void actuatorTask(void *pv){
     dspi_sem = xSemaphoreCreateBinary();
 
     /*Master config*/
-    masterConfig.whichCtar                                = kDSPI_Ctar0;
-    masterConfig.ctarConfig.baudRate                      = TRANSFER_BAUDRATE;
-    masterConfig.ctarConfig.bitsPerFrame                  = 8;
-    masterConfig.ctarConfig.cpol                          = kDSPI_ClockPolarityActiveHigh;
-    masterConfig.ctarConfig.cpha                          = kDSPI_ClockPhaseFirstEdge;
-    masterConfig.ctarConfig.direction                     = kDSPI_MsbFirst;
-    masterConfig.ctarConfig.pcsToSckDelayInNanoSec        = 2000;
-    masterConfig.ctarConfig.lastSckToPcsDelayInNanoSec    = 2000;
-    masterConfig.ctarConfig.betweenTransferDelayInNanoSec = 1000;
+//    masterConfig.whichCtar                                = kDSPI_Ctar0;
+//    masterConfig.ctarConfig.baudRate                      = TRANSFER_BAUDRATE;
+//    masterConfig.ctarConfig.bitsPerFrame                  = 8;
+//    masterConfig.ctarConfig.cpol                          = kDSPI_ClockPolarityActiveHigh;
+//    masterConfig.ctarConfig.cpha                          = kDSPI_ClockPhaseFirstEdge;
+//    masterConfig.ctarConfig.direction                     = kDSPI_MsbFirst;
+//    masterConfig.ctarConfig.pcsToSckDelayInNanoSec        = 2000;
+//    masterConfig.ctarConfig.lastSckToPcsDelayInNanoSec    = 2000;
+//    masterConfig.ctarConfig.betweenTransferDelayInNanoSec = 1000;
+//
+//    masterConfig.whichPcs           = kDSPI_Pcs0;
+//    masterConfig.pcsActiveHighOrLow = kDSPI_PcsActiveLow;
+//
+//    masterConfig.enableContinuousSCK        = false;
+//    masterConfig.enableRxFifoOverWrite      = false;
+//    masterConfig.enableModifiedTimingFormat = false;
+//    masterConfig.samplePoint                = kDSPI_SckToSin0Clock;
 
-    masterConfig.whichPcs           = kDSPI_Pcs0;
-    masterConfig.pcsActiveHighOrLow = kDSPI_PcsActiveLow;
-
-    masterConfig.enableContinuousSCK        = false;
-    masterConfig.enableRxFifoOverWrite      = false;
-    masterConfig.enableModifiedTimingFormat = false;
-    masterConfig.samplePoint                = kDSPI_SckToSin0Clock;
+    DSPI_MasterGetDefaultConfig(&masterConfig);
+    masterConfig.ctarConfig.bitsPerFrame = 16;
 
     sourceClock = DSPI_MASTER_CLK_FREQ;
     status      = DSPI_RTOS_Init(&master_rtos_handle, EXAMPLE_DSPI_MASTER_BASEADDR, &masterConfig, sourceClock);
@@ -170,6 +171,12 @@ static void actuatorTask(void *pv){
     masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs0 | kDSPI_MasterPcsContinuous;
 
     status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
+
+    printf("RX: ");
+    for(int i = 0; i < TRANSFER_SIZE; ++i){
+    	printf(" %d ", masterXfer.rxData[i]);
+    }
+    printf("\n");
 
     if (status == kStatus_Success)
     {
