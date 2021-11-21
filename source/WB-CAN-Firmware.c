@@ -18,6 +18,7 @@
 
 #include "fsl_dspi.h"
 #include "fsl_dspi_freertos.h"
+#include "fsl_gpio.h"
 
 
 /*******************************************************************************
@@ -126,6 +127,14 @@ static void testTask(void *pv) {
 
 
 static void actuatorTask(void *pv){
+
+
+	for(;;){
+		GPIO_PortToggle(BOARD_INITPINS_IN0_GPIO, BOARD_INITPINS_IN0_GPIO_PIN_MASK);
+		GPIO_PortToggle(BOARD_INITPINS_IN1_GPIO, BOARD_INITPINS_IN1_GPIO_PIN_MASK);
+		printf("Toggling...\n");
+		vTaskDelay(pdMS_TO_TICKS(200));
+	}
 
     dspi_transfer_t masterXfer;
     dspi_rtos_handle_t master_rtos_handle;

@@ -12,12 +12,17 @@ processor: MK66FX1M0xxx18
 package_id: MK66FX1M0VLQ18
 mcu_data: ksdk2_0
 processor_version: 8.0.1
+pin_labels:
+- {pin_num: '111', pin_signal: CMP0_IN0/PTC6/LLWU_P10/SPI0_SOUT/PDB0_EXTRG/I2S0_RX_BCLK/FB_AD9/SDRAM_A17/I2S0_MCLK, label: IN0, identifier: IN0}
+- {pin_num: '112', pin_signal: CMP0_IN1/PTC7/SPI0_SIN/USB0_SOF_OUT/I2S0_RX_FS/FB_AD8/SDRAM_A16, label: IN1, identifier: IN1}
+- {pin_num: '110', pin_signal: PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2, label: IN1, identifier: IN1}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
 
 #include "fsl_common.h"
 #include "fsl_port.h"
+#include "fsl_gpio.h"
 #include "pin_mux.h"
 
 /* FUNCTION ************************************************************************************************************
@@ -37,11 +42,10 @@ void BOARD_InitBootPins(void)
 BOARD_InitPins:
 - options: {callFromInitBoot: 'true', coreID: core0, enableClock: 'true'}
 - pin_list:
-  - {pin_num: '110', peripheral: SPI0, signal: SCK, pin_signal: PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2}
-  - {pin_num: '112', peripheral: SPI0, signal: SIN, pin_signal: CMP0_IN1/PTC7/SPI0_SIN/USB0_SOF_OUT/I2S0_RX_FS/FB_AD8/SDRAM_A16}
-  - {pin_num: '111', peripheral: SPI0, signal: SOUT, pin_signal: CMP0_IN0/PTC6/LLWU_P10/SPI0_SOUT/PDB0_EXTRG/I2S0_RX_BCLK/FB_AD9/SDRAM_A17/I2S0_MCLK}
-  - {pin_num: '109', peripheral: SPI0, signal: PCS0_SS, pin_signal: PTC4/LLWU_P8/SPI0_PCS0/UART1_TX/FTM0_CH3/FB_AD11/SDRAM_A19/CMP1_OUT}
-  - {pin_num: '106', peripheral: SPI0, signal: PCS1, pin_signal: CMP1_IN1/PTC3/LLWU_P7/SPI0_PCS1/UART1_RX/FTM0_CH2/CLKOUT/I2S0_TX_BCLK}
+  - {pin_num: '111', peripheral: GPIOC, signal: 'GPIO, 6', pin_signal: CMP0_IN0/PTC6/LLWU_P10/SPI0_SOUT/PDB0_EXTRG/I2S0_RX_BCLK/FB_AD9/SDRAM_A17/I2S0_MCLK, direction: OUTPUT,
+    gpio_init_state: 'true'}
+  - {pin_num: '110', peripheral: GPIOC, signal: 'GPIO, 5', pin_signal: PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2, direction: OUTPUT,
+    gpio_init_state: 'false'}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -57,20 +61,25 @@ void BOARD_InitPins(void)
     /* Port C Clock Gate Control: Clock enabled */
     CLOCK_EnableClock(kCLOCK_PortC);
 
-    /* PORTC3 (pin 106) is configured as SPI0_PCS1 */
-    PORT_SetPinMux(PORTC, 3U, kPORT_MuxAlt2);
+    gpio_pin_config_t IN1_config = {
+        .pinDirection = kGPIO_DigitalOutput,
+        .outputLogic = 0U
+    };
+    /* Initialize GPIO functionality on pin PTC5 (pin 110)  */
+    GPIO_PinInit(BOARD_INITPINS_IN1_GPIO, BOARD_INITPINS_IN1_PIN, &IN1_config);
 
-    /* PORTC4 (pin 109) is configured as SPI0_PCS0 */
-    PORT_SetPinMux(PORTC, 4U, kPORT_MuxAlt2);
+    gpio_pin_config_t IN0_config = {
+        .pinDirection = kGPIO_DigitalOutput,
+        .outputLogic = 1U
+    };
+    /* Initialize GPIO functionality on pin PTC6 (pin 111)  */
+    GPIO_PinInit(BOARD_INITPINS_IN0_GPIO, BOARD_INITPINS_IN0_PIN, &IN0_config);
 
-    /* PORTC5 (pin 110) is configured as SPI0_SCK */
-    PORT_SetPinMux(PORTC, 5U, kPORT_MuxAlt2);
+    /* PORTC5 (pin 110) is configured as PTC5 */
+    PORT_SetPinMux(BOARD_INITPINS_IN1_PORT, BOARD_INITPINS_IN1_PIN, kPORT_MuxAsGpio);
 
-    /* PORTC6 (pin 111) is configured as SPI0_SOUT */
-    PORT_SetPinMux(PORTC, 6U, kPORT_MuxAlt2);
-
-    /* PORTC7 (pin 112) is configured as SPI0_SIN */
-    PORT_SetPinMux(PORTC, 7U, kPORT_MuxAlt2);
+    /* PORTC6 (pin 111) is configured as PTC6 */
+    PORT_SetPinMux(BOARD_INITPINS_IN0_PORT, BOARD_INITPINS_IN0_PIN, kPORT_MuxAsGpio);
 }
 /***********************************************************************************************************************
  * EOF

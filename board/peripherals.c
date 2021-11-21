@@ -34,78 +34,10 @@ component:
 #include "peripherals.h"
 
 /***********************************************************************************************************************
- * BOARD_InitPeripherals functional group
- **********************************************************************************************************************/
-/***********************************************************************************************************************
- * SPI0 initialization code
- **********************************************************************************************************************/
-/* clang-format off */
-/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
-instance:
-- name: 'SPI0'
-- type: 'dspi'
-- mode: 'DSPI_Polling'
-- custom_name_enabled: 'false'
-- type_id: 'dspi_305e5b03c593d065f61ded8061d15797'
-- functional_group: 'BOARD_InitPeripherals'
-- peripheral: 'SPI0'
-- config_sets:
-  - fsl_dspi:
-    - dspi_mode: 'kDSPI_Master'
-    - clockSource: 'BusInterfaceClock'
-    - clockSourceFreq: 'GetFreq'
-    - dspi_master_config:
-      - whichCtar: 'kDSPI_Ctar0'
-      - ctarConfig:
-        - baudRate: '500000'
-        - bitsPerFrame: '8'
-        - cpol: 'kDSPI_ClockPolarityActiveHigh'
-        - cpha: 'kDSPI_ClockPhaseFirstEdge'
-        - direction: 'kDSPI_MsbFirst'
-        - pcsToSckDelayInNanoSec: '1000'
-        - lastSckToPcsDelayInNanoSec: '1000'
-        - betweenTransferDelayInNanoSec: '1000'
-      - whichPcs: 'PCS0_SS'
-      - pcsActiveHighOrLow: 'kDSPI_PcsActiveLow'
-      - enableContinuousSCK: 'false'
-      - enableRxFifoOverWrite: 'false'
-      - enableModifiedTimingFormat: 'false'
-      - samplePoint: 'kDSPI_SckToSin0Clock'
-    - quick_selection: 'QS_DSPI_1'
- * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
-/* clang-format on */
-const dspi_master_config_t SPI0_config = {
-  .whichCtar = kDSPI_Ctar0,
-  .ctarConfig = {
-    .baudRate = 500000UL,
-    .bitsPerFrame = 8UL,
-    .cpol = kDSPI_ClockPolarityActiveHigh,
-    .cpha = kDSPI_ClockPhaseFirstEdge,
-    .direction = kDSPI_MsbFirst,
-    .pcsToSckDelayInNanoSec = 1000UL,
-    .lastSckToPcsDelayInNanoSec = 1000UL,
-    .betweenTransferDelayInNanoSec = 1000UL
-  },
-  .whichPcs = kDSPI_Pcs0,
-  .pcsActiveHighOrLow = kDSPI_PcsActiveLow,
-  .enableContinuousSCK = false,
-  .enableRxFifoOverWrite = false,
-  .enableModifiedTimingFormat = false,
-  .samplePoint = kDSPI_SckToSin0Clock
-};
-
-static void SPI0_init(void) {
-  /* Initialization function */
-  DSPI_MasterInit(SPI0_PERIPHERAL, &SPI0_config, SPI0_CLK_FREQ);
-}
-
-/***********************************************************************************************************************
  * Initialization functions
  **********************************************************************************************************************/
 void BOARD_InitPeripherals(void)
 {
-  /* Initialize components */
-  SPI0_init();
 }
 
 /***********************************************************************************************************************
