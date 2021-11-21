@@ -29,12 +29,13 @@
 #define DSPI_MASTER_CLK_FREQ     CLOCK_GetFreq((DSPI0_CLK_SRC))
 #define EXAMPLE_DSPI_MASTER_BASEADDR ((SPI_Type *)EXAMPLE_DSPI_MASTER_BASE)
 
-#define TRANSFER_SIZE     (16)     /*! Transfer size */
+#define TRANSFER_SIZE     (4)     /*! Transfer size */
 #define TRANSFER_BAUDRATE (500000U) /*! Transfer baudrate - 500k */
 
 
 uint8_t masterReceiveBuffer[TRANSFER_SIZE] = {0};
-uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0};
+uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b00000010, 0b01000000};
+//uint8_t masterSendBuffer[TRANSFER_SIZE] = {0b01110010, 0b00000010};
 SemaphoreHandle_t dspi_sem;
 
 /*******************************************************************************
@@ -112,7 +113,7 @@ static void blinkTask(void *pv) {
 	while(1) {
 
 		vTaskDelay(pdMS_TO_TICKS(500));
-		printf("BLINK");
+//		printf("BLINK");
 	}
 }
 
@@ -155,6 +156,8 @@ static void actuatorTask(void *pv){
 
     DSPI_MasterGetDefaultConfig(&masterConfig);
     masterConfig.ctarConfig.bitsPerFrame = 16;
+    masterConfig.ctarConfig.cpol = kDSPI_ClockPolarityActiveLow;
+    masterConfig.whichPcs = kDSPI_Pcs1;
 
     sourceClock = DSPI_MASTER_CLK_FREQ;
     status      = DSPI_RTOS_Init(&master_rtos_handle, EXAMPLE_DSPI_MASTER_BASEADDR, &masterConfig, sourceClock);
@@ -168,7 +171,7 @@ static void actuatorTask(void *pv){
     masterXfer.txData      = masterSendBuffer;
     masterXfer.rxData      = masterReceiveBuffer;
     masterXfer.dataSize    = TRANSFER_SIZE;
-    masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs0 | kDSPI_MasterPcsContinuous;
+    masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs1 | kDSPI_MasterPcsContinuous;
 
     status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
 
@@ -184,8 +187,16 @@ static void actuatorTask(void *pv){
     }
 
 	while(1){
+		masterXfer.txData[1] ^= 1UL << 7;
+		masterXfer.txData[1] ^= 1UL << 6;
 
-		vTaskDelay(pdMS_TO_TICKS(1000));
+		status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
+		printf("RX: ");
+		for(int i = 0; i < TRANSFER_SIZE; ++i){
+			printf(" %d ", masterXfer.rxData[i]);
+		}
+		printf("\n");
+		vTaskDelay(pdMS_TO_TICKS(100));
 	}
 
 }
