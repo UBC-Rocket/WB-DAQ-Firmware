@@ -37,6 +37,11 @@
                   <enableClock>true</enableClock>
                </options>
                <dependencies>
+                  <dependency resourceType="Peripheral" resourceId="SPI1" description="Peripheral SPI1 is not initialized" problem_level="1" source="Pins:BOARD_InitPins">
+                     <feature name="initialized" evaluation="equal">
+                        <data>true</data>
+                     </feature>
+                  </dependency>
                   <dependency resourceType="SWComponent" resourceId="platform.drivers.common" description="Pins initialization requires the COMMON Driver in the project." problem_level="2" source="Pins:BOARD_InitPins">
                      <feature name="enabled" evaluation="equal" configuration="core0">
                         <data>true</data>
@@ -68,6 +73,11 @@
                         <pin_feature name="gpio_init_state" value="false"/>
                      </pin_features>
                   </pin>
+                  <pin peripheral="SPI1" signal="PCS0_SS" pin_num="91" pin_signal="ADC1_SE14/PTB10/SPI1_PCS0/UART3_RX/FB_AD19/SDRAM_D19/FTM0_FLT1"/>
+                  <pin peripheral="SPI1" signal="SCK" pin_num="92" pin_signal="ADC1_SE15/PTB11/SPI1_SCK/UART3_TX/FB_AD18/SDRAM_D18/FTM0_FLT2"/>
+                  <pin peripheral="SPI1" signal="SIN" pin_num="96" pin_signal="TSI0_CH10/PTB17/SPI1_SIN/UART0_TX/FTM_CLKIN1/FB_AD16/SDRAM_D16/EWM_OUT_b/TPM_CLKIN1"/>
+                  <pin peripheral="SPI1" signal="SOUT" pin_num="95" pin_signal="TSI0_CH9/PTB16/SPI1_SOUT/UART0_RX/FTM_CLKIN0/FB_AD17/SDRAM_D17/EWM_IN/TPM_CLKIN0"/>
+                  <pin peripheral="SPI1" signal="PCS1" pin_num="90" pin_signal="PTB9/SPI1_PCS1/UART3_CTS_b/FB_AD20/SDRAM_D20"/>
                </pins>
             </function>
          </functions_list>
@@ -142,6 +152,18 @@
          <dcdx_configurations/>
       </dcdx>
       <periphs name="Peripherals" version="8.0" enabled="true" update_project_code="true">
+         <dependencies>
+            <dependency resourceType="SWComponent" resourceId="platform.drivers.dspi" description="DSPI Driver not found in the toolchain/IDE project. Project will not compile!" problem_level="2" source="Peripherals">
+               <feature name="enabled" evaluation="equal">
+                  <data type="Boolean">true</data>
+               </feature>
+            </dependency>
+            <dependency resourceType="SWComponent" resourceId="platform.drivers.dspi" description="Unsupported version of the DSPI Driver in the toolchain/IDE project. Required: ${required_value}, actual: ${actual_value}. Project might not compile correctly." problem_level="1" source="Peripherals">
+               <feature name="version" evaluation="equivalent">
+                  <data type="Version">2.2.0</data>
+               </feature>
+            </dependency>
+         </dependencies>
          <generated_project_files>
             <file path="board/peripherals.c" update_enabled="true"/>
             <file path="board/peripherals.h" update_enabled="true"/>
@@ -153,8 +175,61 @@
             <functional_group name="BOARD_InitPeripherals" uuid="003e09be-8246-4dfc-8d8b-7814e2a4e030" called_from_default_init="true" id_prefix="" core="core0">
                <description></description>
                <options/>
-               <dependencies/>
-               <instances/>
+               <dependencies>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="SPI1.spi_rxd" description="Signal serial data in of the peripheral SPI1 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="SPI1.spi_txd" description="Signal serial data out of the peripheral SPI1 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="SPI1.spi_sck" description="Signal serial clock of the peripheral SPI1 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="SPI1.spi_cs1" description="Signal chip select 1 of the peripheral SPI1 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="ClockOutput" resourceId="Bus_clock" description="Bus clock is inactive." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="frequency" evaluation="greaterThan">
+                        <data type="Frequency" unit="Hz">0</data>
+                     </feature>
+                  </dependency>
+               </dependencies>
+               <instances>
+                  <instance name="SPI1" uuid="3e5ef08e-2730-4cd6-93ec-bac92216ef27" type="dspi" type_id="dspi_305e5b03c593d065f61ded8061d15797" mode="DSPI_Polling" peripheral="SPI1" enabled="true" comment="" custom_name_enabled="false">
+                     <config_set name="fsl_dspi" quick_selection="QS_DSPI_1">
+                        <setting name="dspi_mode" value="kDSPI_Master"/>
+                        <setting name="clockSource" value="BusInterfaceClock"/>
+                        <setting name="clockSourceFreq" value="GetFreq"/>
+                        <struct name="dspi_master_config">
+                           <setting name="whichCtar" value="kDSPI_Ctar0"/>
+                           <struct name="ctarConfig">
+                              <setting name="baudRate" value="500000"/>
+                              <setting name="bitsPerFrame" value="8"/>
+                              <setting name="cpol" value="kDSPI_ClockPolarityActiveHigh"/>
+                              <setting name="cpha" value="kDSPI_ClockPhaseFirstEdge"/>
+                              <setting name="direction" value="kDSPI_MsbFirst"/>
+                              <setting name="pcsToSckDelayInNanoSec" value="1000"/>
+                              <setting name="lastSckToPcsDelayInNanoSec" value="1000"/>
+                              <setting name="betweenTransferDelayInNanoSec" value="1000"/>
+                           </struct>
+                           <setting name="whichPcs" value="PCS1"/>
+                           <setting name="pcsActiveHighOrLow" value="kDSPI_PcsActiveLow"/>
+                           <setting name="enableContinuousSCK" value="false"/>
+                           <setting name="enableRxFifoOverWrite" value="false"/>
+                           <setting name="enableModifiedTimingFormat" value="false"/>
+                           <setting name="samplePoint" value="kDSPI_SckToSin0Clock"/>
+                        </struct>
+                     </config_set>
+                  </instance>
+               </instances>
             </functional_group>
          </functional_groups>
          <components>

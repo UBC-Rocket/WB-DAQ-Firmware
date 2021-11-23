@@ -26,6 +26,7 @@
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
+static void adcTask(void *pv);
 
 /*******************************************************************************
  * Main
@@ -82,6 +83,17 @@ int main(void) {
     	    ;
     };
 
+    if ((error =  xTaskCreate(adcTask,
+    "ADC Task",
+	1024,
+	NULL,
+	0,
+	NULL)) != pdPASS) {
+    	printf("Task init failed: %ld\n", error);
+    	for (;;)
+    	    ;
+    };
+
     vTaskStartScheduler();
 
     for(;;);
@@ -112,6 +124,13 @@ static void actuatorTask(void *pv){
 		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
 		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
 		vTaskDelay(pdMS_TO_TICKS(200));
+	}
+}
+
+static void adcTask(void *pv){
+	for(;;){
+
+		vTaskDelay(pdMS_TO_TICKS(1000));
 	}
 }
 
