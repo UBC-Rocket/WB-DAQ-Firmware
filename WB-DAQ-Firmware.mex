@@ -23,9 +23,9 @@
          <pins_profile>
             <processor_version>8.0.1</processor_version>
             <pin_labels>
-               <pin_label pin_num="111" pin_signal="CMP0_IN0/PTC6/LLWU_P10/SPI0_SOUT/PDB0_EXTRG/I2S0_RX_BCLK/FB_AD9/SDRAM_A17/I2S0_MCLK" label="IN0" identifier="IN0"/>
+               <pin_label pin_num="111" pin_signal="CMP0_IN0/PTC6/LLWU_P10/SPI0_SOUT/PDB0_EXTRG/I2S0_RX_BCLK/FB_AD9/SDRAM_A17/I2S0_MCLK" label="HS_SWITCH_B_IN0" identifier="IN0;HS_SWITCH_IN0;HS_SWITCH_B_IN0"/>
                <pin_label pin_num="112" pin_signal="CMP0_IN1/PTC7/SPI0_SIN/USB0_SOF_OUT/I2S0_RX_FS/FB_AD8/SDRAM_A16" label="IN1" identifier="IN1"/>
-               <pin_label pin_num="110" pin_signal="PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2" label="IN1" identifier="IN1"/>
+               <pin_label pin_num="110" pin_signal="PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2" label="HS_SWITCH_B_IN1" identifier="IN1;HS_SWITCH_B_IN0;HS_SWITCH_B_IN1"/>
             </pin_labels>
          </pins_profile>
          <functions_list>
@@ -56,12 +56,14 @@
                <pins>
                   <pin peripheral="GPIOC" signal="GPIO, 6" pin_num="111" pin_signal="CMP0_IN0/PTC6/LLWU_P10/SPI0_SOUT/PDB0_EXTRG/I2S0_RX_BCLK/FB_AD9/SDRAM_A17/I2S0_MCLK">
                      <pin_features>
+                        <pin_feature name="identifier" value="HS_SWITCH_B_IN0"/>
                         <pin_feature name="direction" value="OUTPUT"/>
                         <pin_feature name="gpio_init_state" value="true"/>
                      </pin_features>
                   </pin>
                   <pin peripheral="GPIOC" signal="GPIO, 5" pin_num="110" pin_signal="PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2">
                      <pin_features>
+                        <pin_feature name="identifier" value="HS_SWITCH_B_IN1"/>
                         <pin_feature name="direction" value="OUTPUT"/>
                         <pin_feature name="gpio_init_state" value="false"/>
                      </pin_features>
