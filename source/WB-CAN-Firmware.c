@@ -16,11 +16,16 @@
 
 #include <task.h>
 
+#include "fsl_dspi.h"
+#include "fsl_dspi_freertos.h"
+#include "fsl_gpio.h"
+
 /*******************************************************************************
  * Prototypes
  ******************************************************************************/
 static void blinkTask(void *pv);
 static void testTask(void *pv);
+static void actuatorTask(void *pv);
 
 /*******************************************************************************
  * Main
@@ -36,8 +41,9 @@ int main(void) {
     /* Init FSL debug console. */
     BOARD_InitDebugConsole();
 #endif
+
+
     BaseType_t error;
-    printf("Hello World\n");
 
     // Create the BlinkTest
     if ((error = xTaskCreate(
@@ -65,7 +71,20 @@ int main(void) {
     	    ;
     };
 
+    if ((error =  xTaskCreate(actuatorTask,
+    "Actuator Task",
+	1024,
+	NULL,
+	0,
+	NULL)) != pdPASS) {
+    	printf("Task init failed: %ld\n", error);
+    	for (;;)
+    	    ;
+    };
+
     vTaskStartScheduler();
+
+    for(;;);
 }
 
 /*******************************************************************************
@@ -75,14 +94,24 @@ static void blinkTask(void *pv) {
 	while(1) {
 
 		vTaskDelay(pdMS_TO_TICKS(500));
-		printf("BLINK");
+//		printf("BLINK");
 	}
 }
 
 static void testTask(void *pv) {
 	while(1) {
-
 		vTaskDelay(pdMS_TO_TICKS(500));
+	}
+}
+
+
+
+static void actuatorTask(void *pv){
+	for(;;){
+		// Toggle indefinitely to show they work, will add control loop later
+		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
+		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
+		vTaskDelay(pdMS_TO_TICKS(200));
 	}
 }
 
