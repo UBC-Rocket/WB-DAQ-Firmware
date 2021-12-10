@@ -51,8 +51,6 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 
 
 
-
-
 /*******************************************************************************
  * Main
  ******************************************************************************/
@@ -155,47 +153,47 @@ static void actuatorTask(void *pv){
 static void ADCTask(void *pv) {
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(500));
-			adc16_config_t adc16ConfigStruct;
-		    adc16_channel_config_t adc16ChannelConfigStruct;
+		adc16_config_t adc16ConfigStruct;
+		adc16_channel_config_t adc16ChannelConfigStruct;
 
-		    BOARD_InitPins();
-		    BOARD_BootClockRUN();
-		    BOARD_InitDebugConsole();
-		    EnableIRQ(DEMO_ADC16_IRQn);
+		BOARD_InitPins();
+		BOARD_BootClockRUN();
+		BOARD_InitDebugConsole();
+		EnableIRQ(DEMO_ADC16_IRQn);
 
-		    PRINTF("\r\nADC16 interrupt Example.\r\n");
+		PRINTF("\r\nADC16 interrupt Example.\r\n");
 
-		    ADC16_GetDefaultConfig(&adc16ConfigStruct);
+		ADC16_GetDefaultConfig(&adc16ConfigStruct);
 
-		    PRINTF("ADC Full Range: %d\r\n", g_Adc16_12bitFullRange);
-		    PRINTF("Press any key to get user channel's ADC value ...\r\n");
+		PRINTF("ADC Full Range: %d\r\n", g_Adc16_12bitFullRange);
+		PRINTF("Press any key to get user channel's ADC value ...\r\n");
 
-		    adc16ChannelConfigStruct.channelNumber                        = DEMO_ADC16_USER_CHANNEL;
-		    adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
+		adc16ChannelConfigStruct.channelNumber                        = DEMO_ADC16_USER_CHANNEL;
+		adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
 
-		    g_Adc16InterruptCounter = 0U;
+		g_Adc16InterruptCounter = 0U;
 
-		    while (1)
-		    {
-		        GETCHAR();
-		        g_Adc16ConversionDoneFlag = false;
-		        /*
-		         When in software trigger mode, each conversion would be launched once calling the "ADC16_ChannelConfigure()"
-		         function, which works like writing a conversion command and executing it. For another channel's conversion,
-		         just to change the "channelNumber" field in channel configuration structure, and call the function
-		         "ADC16_ChannelConfigure()"" again.
-		         Also, the "enableInterruptOnConversionCompleted" inside the channel configuration structure is a parameter for
-		         the conversion command. It takes affect just for the current conversion. If the interrupt is still required
-		         for the following conversion, it is necessary to assert the "enableInterruptOnConversionCompleted" every time
-		         for each command.
-		        */
-		        ADC16_SetChannelConfig(DEMO_ADC16_BASE, DEMO_ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
-		        while (!g_Adc16ConversionDoneFlag)
-		        {
-		        }
-		        PRINTF("ADC Value: %d\r\n", g_Adc16ConversionValue);
-		        PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
-		    }
+		while (1)
+		{
+			GETCHAR();
+			g_Adc16ConversionDoneFlag = false;
+			/*
+			 When in software trigger mode, each conversion would be launched once calling the "ADC16_ChannelConfigure()"
+			 function, which works like writing a conversion command and executing it. For another channel's conversion,
+			 just to change the "channelNumber" field in channel configuration structure, and call the function
+			 "ADC16_ChannelConfigure()"" again.
+			 Also, the "enableInterruptOnConversionCompleted" inside the channel configuration structure is a parameter for
+			 the conversion command. It takes affect just for the current conversion. If the interrupt is still required
+			 for the following conversion, it is necessary to assert the "enableInterruptOnConversionCompleted" every time
+			 for each command.
+			*/
+			ADC16_SetChannelConfig(DEMO_ADC16_BASE, DEMO_ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
+			while (!g_Adc16ConversionDoneFlag)
+			{
+			}
+			PRINTF("ADC Value: %d\r\n", g_Adc16ConversionValue);
+			PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
+		}
 	}
 }
 void DEMO_ADC16_IRQ_HANDLER_FUNC(void)
