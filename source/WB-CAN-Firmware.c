@@ -42,12 +42,12 @@ volatile uint32_t g_Adc16ConversionValue;
 volatile uint32_t g_Adc16InterruptCounter;
 const uint32_t g_Adc16_12bitFullRange = 4096U;
 
-#define DEMO_ADC16_BASE          ADC1
+#define DEMO_ADC16_BASE          ADC0
 #define DEMO_ADC16_CHANNEL_GROUP 0U
 #define DEMO_ADC16_USER_CHANNEL  23U
 
-#define DEMO_ADC16_IRQn             ADC1_IRQn
-#define DEMO_ADC16_IRQ_HANDLER_FUNC ADC1_IRQHandler
+#define DEMO_ADC16_IRQn             ADC0_IRQn
+#define DEMO_ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
 
