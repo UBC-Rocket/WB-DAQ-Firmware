@@ -46,6 +46,7 @@ BOARD_InitPins:
     direction: OUTPUT, gpio_init_state: 'true'}
   - {pin_num: '110', peripheral: GPIOC, signal: 'GPIO, 5', pin_signal: PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2, identifier: HS_SWITCH_B_IN1,
     direction: OUTPUT, gpio_init_state: 'false'}
+  - {pin_num: '46', peripheral: ADC0, signal: 'SE, 18', pin_signal: ADC0_SE18/PTE25/LLWU_P21/CAN1_RX/UART4_RX/I2C0_SDA/EWM_IN}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -60,6 +61,8 @@ void BOARD_InitPins(void)
 {
     /* Port C Clock Gate Control: Clock enabled */
     CLOCK_EnableClock(kCLOCK_PortC);
+    /* Port E Clock Gate Control: Clock enabled */
+    CLOCK_EnableClock(kCLOCK_PortE);
 
     gpio_pin_config_t HS_SWITCH_B_IN1_config = {
         .pinDirection = kGPIO_DigitalOutput,
@@ -80,6 +83,9 @@ void BOARD_InitPins(void)
 
     /* PORTC6 (pin 111) is configured as PTC6 */
     PORT_SetPinMux(BOARD_INITPINS_HS_SWITCH_B_IN0_PORT, BOARD_INITPINS_HS_SWITCH_B_IN0_PIN, kPORT_MuxAsGpio);
+
+    /* PORTE25 (pin 46) is configured as ADC0_SE18 */
+    PORT_SetPinMux(PORTE, 25U, kPORT_PinDisabledOrAnalog);
 }
 /***********************************************************************************************************************
  * EOF
