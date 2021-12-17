@@ -152,7 +152,7 @@ static void actuatorTask(void *pv){
 
 static void ADCTask(void *pv) {
 	while(1) {
-		vTaskDelay(pdMS_TO_TICKS(500));
+		//vTaskDelay(pdMS_TO_TICKS(500));
 		adc16_config_t adc16ConfigStruct;
 		adc16_channel_config_t adc16ChannelConfigStruct;
 
