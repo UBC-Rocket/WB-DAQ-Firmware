@@ -44,7 +44,8 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 
 #define DEMO_ADC16_BASE          ADC0
 #define DEMO_ADC16_CHANNEL_GROUP 0U
-#define DEMO_ADC16_USER_CHANNEL  23U
+// This sets what ADC Signal you are using:
+#define DEMO_ADC16_USER_CHANNEL  18U
 
 #define DEMO_ADC16_IRQn             ADC0_IRQn
 #define DEMO_ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
@@ -170,6 +171,20 @@ static void ADCTask(void *pv) {
 
 		adc16ChannelConfigStruct.channelNumber                        = DEMO_ADC16_USER_CHANNEL;
 		adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
+
+
+
+		// Calibration for Positive/Negative
+		if (kStatus_Success == ADC16_DoAutoCalibration(DEMO_ADC16_BASE))
+		{
+			PRINTF("ADC16_DoAutoCalibration() Done.\r\n");
+		}
+		else
+		{
+			PRINTF("ADC16_DoAutoCalibration() Failed.\r\n");
+		}
+
+
 
 		g_Adc16InterruptCounter = 0U;
 
