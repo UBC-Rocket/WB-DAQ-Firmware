@@ -46,8 +46,10 @@ BOARD_InitPins:
     direction: OUTPUT, gpio_init_state: 'true'}
   - {pin_num: '110', peripheral: GPIOC, signal: 'GPIO, 5', pin_signal: PTC5/LLWU_P9/SPI0_SCK/LPTMR0_ALT2/I2S0_RXD0/FB_AD10/SDRAM_A18/CMP0_OUT/FTM0_CH2, identifier: HS_SWITCH_B_IN1,
     direction: OUTPUT, gpio_init_state: 'false'}
-  - {pin_num: '115', peripheral: I2C1, signal: SCL, pin_signal: ADC1_SE6b/PTC10/I2C1_SCL/FTM3_CH6/I2S0_RX_FS/FB_AD5/SDRAM_A13}
-  - {pin_num: '116', peripheral: I2C1, signal: SDA, pin_signal: ADC1_SE7b/PTC11/LLWU_P11/I2C1_SDA/FTM3_CH7/I2S0_RXD1/FB_RW_b}
+  - {pin_num: '115', peripheral: I2C1, signal: SCL, pin_signal: ADC1_SE6b/PTC10/I2C1_SCL/FTM3_CH6/I2S0_RX_FS/FB_AD5/SDRAM_A13, open_drain: enable, pull_select: up,
+    pull_enable: enable}
+  - {pin_num: '116', peripheral: I2C1, signal: SDA, pin_signal: ADC1_SE7b/PTC11/LLWU_P11/I2C1_SDA/FTM3_CH7/I2S0_RXD1/FB_RW_b, open_drain: enable, pull_select: up,
+    pull_enable: enable}
   - {pin_num: '14', peripheral: I2C3, signal: SCL, pin_signal: PTE11/I2C3_SCL/I2S0_TX_FS/LPUART0_RTS_b/FTM3_CH6, open_drain: enable, pull_select: up, pull_enable: enable}
   - {pin_num: '13', peripheral: I2C3, signal: SDA, pin_signal: PTE10/LLWU_P18/I2C3_SDA/I2S0_TXD0/LPUART0_CTS_b/FTM3_CH5/USB1_ID, open_drain: enable, pull_select: up,
     pull_enable: enable}
@@ -85,8 +87,32 @@ void BOARD_InitPins(void)
     /* PORTC10 (pin 115) is configured as I2C1_SCL */
     PORT_SetPinMux(PORTC, 10U, kPORT_MuxAlt2);
 
+    PORTC->PCR[10] = ((PORTC->PCR[10] &
+                       /* Mask bits to zero which are setting */
+                       (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ODE_MASK | PORT_PCR_ISF_MASK)))
+
+                      /* Pull Select: Internal pullup resistor is enabled on the corresponding pin, if the
+                       * corresponding PE field is set. */
+                      | (uint32_t)(kPORT_PullUp)
+
+                      /* Open Drain Enable: Open drain output is enabled on the corresponding pin, if the pin is
+                       * configured as a digital output. */
+                      | PORT_PCR_ODE(kPORT_OpenDrainEnable));
+
     /* PORTC11 (pin 116) is configured as I2C1_SDA */
     PORT_SetPinMux(PORTC, 11U, kPORT_MuxAlt2);
+
+    PORTC->PCR[11] = ((PORTC->PCR[11] &
+                       /* Mask bits to zero which are setting */
+                       (~(PORT_PCR_PS_MASK | PORT_PCR_PE_MASK | PORT_PCR_ODE_MASK | PORT_PCR_ISF_MASK)))
+
+                      /* Pull Select: Internal pullup resistor is enabled on the corresponding pin, if the
+                       * corresponding PE field is set. */
+                      | (uint32_t)(kPORT_PullUp)
+
+                      /* Open Drain Enable: Open drain output is enabled on the corresponding pin, if the pin is
+                       * configured as a digital output. */
+                      | PORT_PCR_ODE(kPORT_OpenDrainEnable));
 
     /* PORTC5 (pin 110) is configured as PTC5 */
     PORT_SetPinMux(BOARD_INITPINS_HS_SWITCH_B_IN1_PORT, BOARD_INITPINS_HS_SWITCH_B_IN1_PIN, kPORT_MuxAsGpio);

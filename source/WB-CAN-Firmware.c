@@ -26,13 +26,17 @@
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
-#define TC_I2C_BASE     (I2C3_BASE)
-#define TC_I2C_IRQN     (I2C3_IRQn)
-#define TC_I2C_CLK_SRC  (I2C3_CLK_SRC)
-#define TC_I2C_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
+#define TC_I2C1_BASE     (I2C1_BASE)
+#define TC_I2C1_IRQN     (I2C1_IRQn)
+#define TC_I2C1_CLK_SRC  (I2C1_CLK_SRC)
+#define TC_I2C1_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
+#define TC_I2C1 ((I2C_Type *)TC_I2C1_BASE)
 
-
-#define TC_I2C ((I2C_Type *)TC_I2C_BASE)
+#define TC_I2C3_BASE     (I2C3_BASE)
+#define TC_I2C3_IRQN     (I2C3_IRQn)
+#define TC_I2C3_CLK_SRC  (I2C3_CLK_SRC)
+#define TC_I2C3_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
+#define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
 /*******************************************************************************
  * Prototypes
@@ -57,7 +61,8 @@ int main(void) {
     BOARD_InitDebugConsole();
 #endif
 
-    NVIC_SetPriority(TC_I2C_IRQN, 3);
+    NVIC_SetPriority(TC_I2C1_IRQN, 3);
+    NVIC_SetPriority(TC_I2C3_IRQN, 3);
 
 
     BaseType_t error;
@@ -143,90 +148,94 @@ static void actuatorTask(void *pv){
 	}
 }
 
-uint8_t g_master_buff[32] = {0};
+
+/*
+ * Reads from a thermocouple. If we need more configuration I might make this more general to get arbitrary registers
+ * @param handle the handle of the i2c instance
+ * @param slaveAddress the slave that you are addressing, for the current board this should be 0b1100000 or 0b1100111
+ * @return the temperature at the hot junction
+ */
+static float readTc(i2c_rtos_handle_t *handle, uint8_t slaveAddress){
+    i2c_master_transfer_t transfer;
+    status_t status;
+	uint8_t buf[2] = {0};
+	buf[0] = 0b00000000;
+
+	memset(&transfer, 0, sizeof(transfer));
+	transfer.slaveAddress   = 0b1100111;
+	transfer.direction      = kI2C_Write;
+	transfer.subaddress     = 0;
+	transfer.subaddressSize = 0;
+	transfer.data           = buf;
+	transfer.dataSize       = 1;
+	transfer.flags          = kI2C_TransferDefaultFlag;
+
+	status = I2C_RTOS_Transfer(handle, &transfer);
+	if (status != kStatus_Success)
+	{
+		printf("I2C master: error during write transaction, %d\n", status);
+	}
+
+
+	for (uint32_t i = 0; i < 2; i++)
+	{
+		buf[i] = 0;
+	}
+
+	transfer.slaveAddress   = 0b1100111;
+	transfer.direction      = kI2C_Read;
+	transfer.subaddress     = 0;
+	transfer.subaddressSize = 0;
+	transfer.data           = buf;
+	transfer.dataSize       = 2;
+	transfer.flags          = kI2C_TransferDefaultFlag;
+
+	status = I2C_RTOS_Transfer(handle, &transfer);
+	if (status != kStatus_Success)
+	{
+		printf("I2C master: error during read transaction, %d\n", status);
+	}
+
+
+	printf("Received: ");
+	for (uint32_t i = 0; i < 2; i++)
+	{
+		if (i % 8 == 0)
+		{
+			printf("\r\n");
+		}
+		printf("0x%2x  ", buf[i]);
+	}
+	printf("\r\n\r\n");
+
+	double temperature;
+	uint8_t UpperByte = buf[0];
+	uint8_t LowerByte = buf[1];
+	if ((UpperByte & 0x80) == 0x80){ //Temperature  0°C
+		temperature = (UpperByte * 16 + LowerByte / 16.0) - 4096;
+	} else //Temperature  0°C
+		temperature = (UpperByte * 16 + LowerByte / 16.0);
+	return temperature;
+}
 
 static void tcTask(void *pv){
-    i2c_rtos_handle_t master_rtos_handle;
-    i2c_master_config_t masterConfig;
-    i2c_master_transfer_t masterXfer;
-    uint32_t sourceClock;
-    status_t status;
+    i2c_rtos_handle_t i2c1_handle;
+    i2c_rtos_handle_t i2c3_handle;
+    i2c_master_config_t i2c_config;
 
 
-	i2c_master_handle_t *g_m_handle;
+    // We assume config is same between I2C instances
+    I2C_MasterGetDefaultConfig(&i2c_config);
+    i2c_config.baudRate_Bps = 10000;
 
-    /*
-     * masterConfig.baudRate_Bps = 100000U;
-     * masterConfig.enableStopHold = false;
-     * masterConfig.glitchFilterWidth = 0U;
-     * masterConfig.enableMaster = true;
-     */
-    I2C_MasterGetDefaultConfig(&masterConfig);
-    masterConfig.baudRate_Bps = 10000;
-    sourceClock               = TC_I2C_CLK_FREQ;
-
-    status = I2C_RTOS_Init(&master_rtos_handle, TC_I2C, &masterConfig, sourceClock);
-
-
+    I2C_RTOS_Init(&i2c1_handle, TC_I2C1, &i2c_config, TC_I2C1_CLK_FREQ);
+    I2C_RTOS_Init(&i2c3_handle, TC_I2C3, &i2c_config, TC_I2C3_CLK_FREQ);
 
     for(;;){
-		g_m_handle = &master_rtos_handle.drv_handle;
-
-//		g_master_buff[0] = 0b00000001;
-		g_master_buff[0] = 0b00000000;
-
-		memset(&masterXfer, 0, sizeof(masterXfer));
-		masterXfer.slaveAddress   = 0b1100111;
-		masterXfer.direction      = kI2C_Write;
-		masterXfer.subaddress     = 0;
-		masterXfer.subaddressSize = 0;
-		masterXfer.data           = g_master_buff;
-		masterXfer.dataSize       = 1;
-		masterXfer.flags          = kI2C_TransferDefaultFlag;
-
-		status = I2C_RTOS_Transfer(&master_rtos_handle, &masterXfer);
-		if (status != kStatus_Success)
-		{
-			PRINTF("I2C master: error during write transaction, %d\n", status);
-		}
+    	float temperature = readTc(&i2c1_handle, 0b1100111);
 
 
-		for (uint32_t i = 0; i < 2; i++)
-		{
-			g_master_buff[i] = 0;
-		}
-
-		masterXfer.slaveAddress   = 0b1100111;
-		masterXfer.direction      = kI2C_Read;
-		masterXfer.subaddress     = 0;
-		masterXfer.subaddressSize = 0;
-		masterXfer.data           = g_master_buff;
-		masterXfer.dataSize       = 2;
-		masterXfer.flags          = kI2C_TransferDefaultFlag;
-
-		status = I2C_RTOS_Transfer(&master_rtos_handle, &masterXfer);
-
-
-		PRINTF("Received: ");
-		for (uint32_t i = 0; i < 2; i++)
-		{
-			if (i % 8 == 0)
-			{
-				PRINTF("\r\n");
-			}
-			PRINTF("0x%2x  ", g_master_buff[i]);
-		}
-		PRINTF("\r\n\r\n");
-
-		double temperature;
-		uint8_t UpperByte = g_master_buff[0];
-		uint8_t LowerByte = g_master_buff[1];
-		if ((UpperByte & 0x80) == 0x80){ //Temperature  0°C
-			temperature = (UpperByte * 16 + LowerByte / 16.0) - 4096;
-		} else //Temperature  0°C
-			temperature = (UpperByte * 16 + LowerByte / 16.0);
-
-		PRINTF("Temperature read: %.4lf\r\n", temperature);
+		printf("Temperature read: %.4f\r\n", temperature);
 
 		vTaskDelay(pdMS_TO_TICKS(500));
     }

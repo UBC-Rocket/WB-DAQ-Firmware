@@ -20,13 +20,6 @@ extern "C" {
  * Definitions
  **********************************************************************************************************************/
 /* Definitions for BOARD_InitPeripherals functional group */
-/* BOARD_InitPeripherals defines for I2C1 */
-/* Definition of peripheral ID */
-#define I2C1_PERIPHERAL I2C1
-/* Definition of the clock source */
-#define I2C1_CLOCK_SOURCE I2C1_CLK_SRC
-/* Definition of the clock source frequency */
-#define I2C1_CLK_FREQ CLOCK_GetFreq(I2C1_CLOCK_SOURCE)
 /* BOARD_InitPeripherals defines for I2C3 */
 /* Definition of peripheral ID */
 #define I2C3_PERIPHERAL I2C3
@@ -34,12 +27,19 @@ extern "C" {
 #define I2C3_CLOCK_SOURCE I2C3_CLK_SRC
 /* Definition of the clock source frequency */
 #define I2C3_CLK_FREQ CLOCK_GetFreq(I2C3_CLOCK_SOURCE)
+/* BOARD_InitPeripherals defines for I2C1 */
+/* Definition of peripheral ID */
+#define I2C1_PERIPHERAL I2C1
+/* Definition of the clock source */
+#define I2C1_CLOCK_SOURCE I2C1_CLK_SRC
+/* Definition of the clock source frequency */
+#define I2C1_CLK_FREQ CLOCK_GetFreq(I2C1_CLOCK_SOURCE)
 
 /***********************************************************************************************************************
  * Global variables
  **********************************************************************************************************************/
-extern const i2c_master_config_t I2C1_config;
 extern const i2c_master_config_t I2C3_config;
+extern const i2c_master_config_t I2C1_config;
 
 /***********************************************************************************************************************
  * Initialization functions
