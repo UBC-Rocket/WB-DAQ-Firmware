@@ -37,11 +37,16 @@ component:
  * BOARD_InitPeripherals functional group
  **********************************************************************************************************************/
 /***********************************************************************************************************************
+
  * ADC0 initialization code
+
+ * I2C3 initialization code
+
  **********************************************************************************************************************/
 /* clang-format off */
 /* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
 instance:
+
 - name: 'ADC0'
 - type: 'adc16'
 - mode: 'ADC'
@@ -103,6 +108,75 @@ static void ADC0_init(void) {
   ADC16_SetHardwareAverage(ADC0_PERIPHERAL, ADC0_hardwareAverageMode);
   /* Configure channel multiplexing mode */
   ADC16_SetChannelMuxMode(ADC0_PERIPHERAL, ADC0_muxMode);
+=======
+- name: 'I2C3'
+- type: 'i2c'
+- mode: 'I2C_Polling'
+- custom_name_enabled: 'false'
+- type_id: 'i2c_2566d7363e7e9aaedabb432110e372d7'
+- functional_group: 'BOARD_InitPeripherals'
+- peripheral: 'I2C3'
+- config_sets:
+  - fsl_i2c:
+    - i2c_mode: 'kI2C_Master'
+    - clockSource: 'BusInterfaceClock'
+    - clockSourceFreq: 'GetFreq'
+    - i2c_master_config:
+      - enableMaster: 'true'
+      - enableStopHold: 'false'
+      - baudRate_Bps: '100000'
+      - glitchFilterWidth: '0'
+    - quick_selection: 'QS_I2C_1'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+const i2c_master_config_t I2C3_config = {
+  .enableMaster = true,
+  .enableStopHold = false,
+  .baudRate_Bps = 100000UL,
+  .glitchFilterWidth = 0U
+};
+
+static void I2C3_init(void) {
+  /* Initialization function */
+  I2C_MasterInit(I2C3_PERIPHERAL, &I2C3_config, I2C3_CLK_FREQ);
+}
+
+/***********************************************************************************************************************
+ * I2C1 initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'I2C1'
+- type: 'i2c'
+- mode: 'I2C_Polling'
+- custom_name_enabled: 'false'
+- type_id: 'i2c_2566d7363e7e9aaedabb432110e372d7'
+- functional_group: 'BOARD_InitPeripherals'
+- peripheral: 'I2C1'
+- config_sets:
+  - fsl_i2c:
+    - i2c_mode: 'kI2C_Master'
+    - clockSource: 'BusInterfaceClock'
+    - clockSourceFreq: 'GetFreq'
+    - i2c_master_config:
+      - enableMaster: 'true'
+      - enableStopHold: 'false'
+      - baudRate_Bps: '100000'
+      - glitchFilterWidth: '0'
+    - quick_selection: 'QS_I2C_1'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+const i2c_master_config_t I2C1_config = {
+  .enableMaster = true,
+  .enableStopHold = false,
+  .baudRate_Bps = 100000UL,
+  .glitchFilterWidth = 0U
+};
+
+static void I2C1_init(void) {
+  /* Initialization function */
+  I2C_MasterInit(I2C1_PERIPHERAL, &I2C1_config, I2C1_CLK_FREQ);
 }
 
 /***********************************************************************************************************************
@@ -111,7 +185,11 @@ static void ADC0_init(void) {
 void BOARD_InitPeripherals(void)
 {
   /* Initialize components */
+
   ADC0_init();
+  I2C3_init();
+  I2C1_init();
+
 }
 
 /***********************************************************************************************************************
