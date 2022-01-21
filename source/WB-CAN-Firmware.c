@@ -91,44 +91,54 @@ int main(void) {
 
     // Create the BlinkTest
     if ((error = xTaskCreate(
-    blinkTask,
-	"Blink LED Task",
-    1024,
-	NULL,
-	0,
-	NULL)) != pdPASS){
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    		;
-
+		blinkTask,
+		"Blink LED Task",
+		512,
+		NULL,
+		0,
+		NULL)) != pdPASS){
+			printf("Task init failed: %ld\n", error);
+			for (;;)
+				;
     };
 
 
     if ((error =  xTaskCreate(testTask,
-    "Test Debugging Task",
-	1024,
-	NULL,
-	0,
-	NULL)) != pdPASS) {
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    	    ;
+		"Test Debugging Task",
+		512,
+		NULL,
+		0,
+		NULL)) != pdPASS) {
+			printf("Task init failed: %ld\n", error);
+			for (;;)
+				;
     };
 
     if ((error =  xTaskCreate(actuatorTask,
-    "Actuator Task",
-	1024,
-	NULL,
-	0,
-	NULL)) != pdPASS) {
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    	    ;
-    };
+		"Actuator Task",
+		512,
+		NULL,
+		0,
+		NULL)) != pdPASS) {
+			printf("Task init failed: %ld\n", error);
+			for (;;)
+				;
+		};
 
-  if ((error =  xTaskCreate(ADCTask,
+    if ((error =  xTaskCreate(tcTask,
+        "Thermocouple Task",
+    	512,
+    	NULL,
+    	0,
+    	NULL)) != pdPASS) {
+        	printf("Task init failed: %ld\n", error);
+        	for (;;)
+        	    ;
+        };
+
+    if ((error =  xTaskCreate(ADCTask,
         "ADC Task",
-    	1024,
+    	512,
     	NULL,
     	0,
     	NULL)) != pdPASS) {
@@ -137,16 +147,7 @@ int main(void) {
         	    ;
         };
 
-    if ((error =  xTaskCreate(tcTask,
-    "Thermocouple Task",
-	1024,
-	NULL,
-	0,
-	NULL)) != pdPASS) {
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    	    ;
-    };
+
 
     vTaskStartScheduler();
 
