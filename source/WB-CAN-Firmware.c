@@ -75,6 +75,7 @@ volatile uint32_t g_Adc16InterruptCounter;
 int main(void) {
 
     /* Init board hardware. */
+	BOARD_InitPins();
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
