@@ -31,6 +31,7 @@ static void ADCTask(void *pv);
 
 // ADC Interrupt:
 void ADC16_IRQ_HANDLER_FUNC(void);
+void adcRead(adc16_config_t, adc16_channel_config_t);
 
 
 
@@ -165,8 +166,6 @@ static void ADCTask(void *pv) {
 	adc16ChannelConfigStruct.channelNumber                        = ADC16_USER_CHANNEL;
 	adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
 
-
-
 	// Calibration for Positive/Negative
 	if (kStatus_Success == ADC16_DoAutoCalibration(ADC16_BASE))
 	{
@@ -177,22 +176,13 @@ static void ADCTask(void *pv) {
 		PRINTF("ADC16_DoAutoCalibration() Failed.\r\n");
 	}
 
-
-
 	g_Adc16InterruptCounter = 0U;
 
 	while (1)
 	{
 		vTaskDelay(pdMS_TO_TICKS(500));
-		g_Adc16ConversionDoneFlag = false;
-		ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
+		adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
 
-		while (!g_Adc16ConversionDoneFlag)
-		{
-		}
-
-		PRINTF("ADC Value: %d\r\n", g_Adc16ConversionValue);
-		PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
 	}
 }
 void ADC16_IRQ_HANDLER_FUNC(void)
@@ -202,5 +192,15 @@ void ADC16_IRQ_HANDLER_FUNC(void)
     g_Adc16ConversionValue = ADC16_GetChannelConversionValue(ADC16_BASE, ADC16_CHANNEL_GROUP);
     g_Adc16InterruptCounter++;
     SDK_ISR_EXIT_BARRIER;
+}
+
+void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
+	g_Adc16ConversionDoneFlag = false;
+	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
+	while (!g_Adc16ConversionDoneFlag)
+	{
+	}
+	PRINTF("ADC Value: %d\r\n", g_Adc16ConversionValue);
+	PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
 }
 
