@@ -166,19 +166,18 @@ static void ADCTask(void *pv) {
 
 	// Configure ADC:
 	ADC16_GetDefaultConfig(&adc16ConfigStruct);
-	//adc16ConfigStruct.referenceVoltageSource					  = 1U;
 	adc16ChannelConfigStruct.channelNumber                        = ADC16_USER_CHANNEL;
 	adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
 
 	// Calibration for Positive/Negative (refer to SDK-Example)
-	if (kStatus_Success == ADC16_DoAutoCalibration(ADC16_BASE)) {
+	if (kStatus_Success == ADC16_DoAutoCalibration(ADC16_BASE))
+	{
 		PRINTF("ADC16_DoAutoCalibration() Done.\r\n");
 	}
-	else {
+	else
+	{
 		PRINTF("ADC16_DoAutoCalibration() Failed.\r\n");
 	}
-	int16_t offset = 0U;
-	ADC16_SetOffsetValue(ADC16_BASE, offset);
 
 	g_Adc16InterruptCounter = 0U;
 
@@ -201,9 +200,6 @@ void ADC16_IRQ_HANDLER_FUNC(void)
 
 void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
 	uint32_t adcValue;
-	// Better to define these?
-	double adc_corrected;
-
 
 	g_Adc16ConversionDoneFlag = false;
 	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
@@ -212,15 +208,7 @@ void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chann
 	}
 	adcValue = g_Adc16ConversionValue;
 
-	// Temporarily resolve the PCB Layer error where VREFL is not grounded:
-	// Two's complement anything above our expected maximum.
-	if (adcValue > 4100) adcValue = adcValue - (1<<16);
-	else adcValue = adcValue;
-
-	adc_corrected = (adc_m_adjust*adcValue+adc_b_adjust);
-
 	PRINTF("ADC Value: %d\r\n", adcValue);
-	PRINTF("ADC Corrected: %lf \r\n", adc_corrected);
 	PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
 }
 
