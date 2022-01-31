@@ -207,8 +207,12 @@ void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chann
 	{
 	}
 	adcValue = g_Adc16ConversionValue;
+	if (adcValue > 4100U)
+	{
+		adcValue = 0; //65536U - adcValue;
+	}
 
-	PRINTF("ADC Value: %d\r\n", adcValue);
-	PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
+	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300));
+	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 }
 
