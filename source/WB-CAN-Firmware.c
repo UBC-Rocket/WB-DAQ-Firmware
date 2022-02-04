@@ -45,9 +45,13 @@
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
-
 static void ADCTask(void *pv);
 static void tcTask(void *pv);
+
+// ADC Interrupt:
+void ADC16_IRQ_HANDLER_FUNC(void);
+void adcRead(adc16_config_t, adc16_channel_config_t);
+
 
 /*******************************************************************************
  * ADC Prototypes and Interrupt Variables
@@ -59,10 +63,12 @@ void ADC16_IRQ_HANDLER_FUNC(void);
 volatile bool g_Adc16ConversionDoneFlag = false;
 volatile uint32_t g_Adc16ConversionValue;
 volatile uint32_t g_Adc16InterruptCounter;
+const uint32_t g_Adc16_12bitFullRange = 4096U;
 
 #define ADC16_BASE          ADC0
 #define ADC16_CHANNEL_GROUP 0U
-#define ADC16_USER_CHANNEL  18U	// This sets what ADC Signal you are using:
+// This sets what ADC Signal you are using:
+#define ADC16_USER_CHANNEL  18U
 
 #define ADC16_IRQn             ADC0_IRQn
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
@@ -90,8 +96,7 @@ int main(void) {
     BaseType_t error;
 
     // Create the BlinkTest
-    if ((error = xTaskCreate(
-		blinkTask,
+    if ((error = xTaskCreate(blinkTask,
 		"Blink LED Task",
 		512,
 		NULL,
@@ -147,8 +152,6 @@ int main(void) {
         	    ;
         };
 
-
-
     vTaskStartScheduler();
 
     for(;;);
@@ -185,18 +188,36 @@ static void ADCTask(void *pv) {
 	adc16_config_t adc16ConfigStruct;
 	adc16_channel_config_t adc16ChannelConfigStruct;
 
-	adcSetup(adc16ConfigStruct, adc16ChannelConfigStruct);
+	BOARD_InitPins();
+	BOARD_BootClockRUN();
+	BOARD_InitDebugConsole();
+	EnableIRQ(ADC16_IRQn);
 
+	// Configure ADC:
+	ADC16_GetDefaultConfig(&adc16ConfigStruct);
+	adc16ChannelConfigStruct.channelNumber                        = ADC16_USER_CHANNEL;
+	adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
+
+	// Calibration for Positive/Negative (refer to SDK-Example)
+	if (kStatus_Success == ADC16_DoAutoCalibration(ADC16_BASE))
+	{
+		PRINTF("ADC16_DoAutoCalibration() Done.\r\n");
+	}
+	else
+	{
+		PRINTF("ADC16_DoAutoCalibration() Failed.\r\n");
+	}
+
+	g_Adc16InterruptCounter = 0U;
+
+	// Read from ADC
 	while (1)
 	{
+		vTaskDelay(pdMS_TO_TICKS(500));
 		adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+
 	}
 }
-
-
-/*******************************************************************************
- * ADC Functions
- ******************************************************************************/
 
 void ADC16_IRQ_HANDLER_FUNC(void)
 {
@@ -207,39 +228,23 @@ void ADC16_IRQ_HANDLER_FUNC(void)
     SDK_ISR_EXIT_BARRIER;
 }
 
-void adcSetup(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
-	EnableIRQ(ADC16_IRQn);
-
-	ADC16_GetDefaultConfig(&adc16ConfigStruct);
-
-	adc16ChannelConfigStruct.channelNumber                        = ADC16_USER_CHANNEL;
-	adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true;
-
-	g_Adc16InterruptCounter = 0U;
-
-	if (kStatus_Success == ADC16_DoAutoCalibration(ADC16_BASE))
-	{
-		PRINTF("ADC16_DoAutoCalibration() Done.\r\n");
-	}
-	else
-	{
-		PRINTF("ADC16_DoAutoCalibration() Failed.\r\n");
-	}
-}
 
 void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
+	uint32_t adcValue;
+
 	g_Adc16ConversionDoneFlag = false;
 	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
-
-	// Slow down Print to display
 	while (!g_Adc16ConversionDoneFlag)
 	{
 	}
+	adcValue = g_Adc16ConversionValue;
+	if (adcValue > 4100U)
+	{
+		adcValue = 0; //65536U - adcValue;
+	}
 
-	PRINTF("ADC Value: %d\r\n", g_Adc16ConversionValue);
-	PRINTF("ADC Interrupt Count: %d\r\n", g_Adc16InterruptCounter);
-
-}
+	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300));
+	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 
 
 /*
