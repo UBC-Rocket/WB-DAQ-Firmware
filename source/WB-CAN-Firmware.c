@@ -246,7 +246,7 @@ void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chann
 
 	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
-
+}
 
 /*
  * Reads from a thermocouple. If we need more configuration I might make this more general to get arbitrary registers
