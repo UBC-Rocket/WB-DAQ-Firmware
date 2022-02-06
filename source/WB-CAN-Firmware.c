@@ -45,7 +45,7 @@
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
-static void ADCTask(void *pv);
+static void ControlTask(void *pv);
 static void tcTask(void *pv);
 
 // ADC Interrupt:
@@ -72,6 +72,13 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 
 #define ADC16_IRQn             ADC0_IRQn
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
+
+
+
+#define valvePin BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO
+#define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK
+
+
 
 
 /*******************************************************************************
@@ -142,8 +149,8 @@ int main(void) {
         	    ;
         };
 
-    if ((error =  xTaskCreate(ADCTask,
-        "ADC Task",
+    if ((error =  xTaskCreate(ControlTask,
+        "Control Task",
     	512,
     	NULL,
     	0,
@@ -176,19 +183,15 @@ static void testTask(void *pv) {
 }
 
 static void actuatorTask(void *pv){
+	uint32_t period, duty;
+
 	for(;;){
-		// Toggle indefinitely to show they work, will add control loop later
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
-		vTaskDelay(pdMS_TO_TICKS(180));
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
-		vTaskDelay(pdMS_TO_TICKS(20));
+		PWM(period, duty);
 	}
 }
 
 
-static void ADCTask(void *pv) {
+static void ControlTask(void *pv) {
 	adc16_config_t adc16ConfigStruct;
 	adc16_channel_config_t adc16ChannelConfigStruct;
 
@@ -214,7 +217,10 @@ static void ADCTask(void *pv) {
 
 	g_Adc16InterruptCounter = 0U;
 
-	// Read from ADC
+	// Set Pin to ON State
+	GPIO_PortSet(valvePin, valvePinMask);
+
+
 	while (1)
 	{
 		vTaskDelay(pdMS_TO_TICKS(500));
@@ -231,7 +237,6 @@ void ADC16_IRQ_HANDLER_FUNC(void)
     g_Adc16InterruptCounter++;
     SDK_ISR_EXIT_BARRIER;
 }
-
 
 void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
 	uint32_t adcValue;
@@ -250,6 +255,30 @@ void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chann
 	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 }
+
+// PWM
+//	- Duty cycle uint32 between 0 and 100
+//
+
+void PWM(uint32_t period, uint32_t duty){
+	if (duty < 0 || duty > 100){
+		printf("Entered Duty Cycle is out of bounds. \n");
+		for(;;){
+			// Better Debugging later
+		}
+	}
+
+	float t1 = period * (100 - duty)/100;
+	float t2 = period * (duty)/100;
+
+	GPIO_PortClear(valvePin, valvePinMask);
+	vTaskDelay(pdMS_TO_TICKS(t1));
+	GPIO_PortSet(valvePin, valvePinMask);
+	vTaskDelay(pdMS_TO_TICKS(t2));
+}
+
+
+
 
 /*
  * Reads from a thermocouple. If we need more configuration I might make this more general to get arbitrary registers
