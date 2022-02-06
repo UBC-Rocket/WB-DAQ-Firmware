@@ -81,7 +81,7 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 int main(void) {
 
     /* Init board hardware. */
-	BOARD_InitPins();
+ 	BOARD_InitPins();
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
@@ -180,7 +180,10 @@ static void actuatorTask(void *pv){
 		// Toggle indefinitely to show they work, will add control loop later
 		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
 		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
-		vTaskDelay(pdMS_TO_TICKS(200));
+		vTaskDelay(pdMS_TO_TICKS(180));
+		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
+		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
+		vTaskDelay(pdMS_TO_TICKS(20));
 	}
 }
 
@@ -244,7 +247,7 @@ void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chann
 		adcValue = 0; //65536U - adcValue;
 	}
 
-	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300));
+	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 }
 
