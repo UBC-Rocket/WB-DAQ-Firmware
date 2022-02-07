@@ -50,14 +50,13 @@ static void tcTask(void *pv);
 
 // ADC Interrupt:
 void ADC16_IRQ_HANDLER_FUNC(void);
-void adcRead(adc16_config_t, adc16_channel_config_t);
 
 
 /*******************************************************************************
  * ADC Prototypes and Interrupt Variables
  ******************************************************************************/
 void adcSetup(adc16_config_t, adc16_channel_config_t);
-void adcRead(adc16_config_t, adc16_channel_config_t);
+float adcRead(adc16_config_t, adc16_channel_config_t);
 void ADC16_IRQ_HANDLER_FUNC(void);
 
 volatile bool g_Adc16ConversionDoneFlag = false;
@@ -78,7 +77,8 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 #define valvePin BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO
 #define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK
 
-
+void PWM(uint32_t, uint32_t);
+uint32_t duty_cycle = 10;
 
 
 /*******************************************************************************
@@ -183,9 +183,15 @@ static void testTask(void *pv) {
 }
 
 static void actuatorTask(void *pv){
-	uint32_t period, duty;
+	uint32_t period = 100;
+	uint32_t duty   =  10;
 
 	for(;;){
+
+		// Ask Xander if this is a good way to do this to avoid misreads
+		if(duty != duty_cycle) duty = duty_cycle;
+		else duty = duty;
+
 		PWM(period, duty);
 	}
 }
@@ -224,7 +230,8 @@ static void ControlTask(void *pv) {
 	while (1)
 	{
 		vTaskDelay(pdMS_TO_TICKS(500));
-		adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+
+		duty_cycle = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
 
 	}
 }
@@ -238,8 +245,8 @@ void ADC16_IRQ_HANDLER_FUNC(void)
     SDK_ISR_EXIT_BARRIER;
 }
 
-void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
-	uint32_t adcValue;
+float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
+	float adcValue;
 
 	g_Adc16ConversionDoneFlag = false;
 	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
@@ -252,8 +259,16 @@ void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chann
 		adcValue = 0; //65536U - adcValue;
 	}
 
-	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
+	// Duty Cycle from 0-100 Used for Potentiometer Setup:
+	adcValue = adcValue / 4096.0 * 100;
+	// When Reading from Pressure Sensor
+	//advValue = (int)(adcValue / 4096.0 * 3300 * 1000 / 330
+
+	PRINTF("ADC Value: %d\t", (int)(adcValue));
+	//PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
+
+	return adcValue;
 }
 
 // PWM
