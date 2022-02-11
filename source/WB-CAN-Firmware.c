@@ -74,8 +74,8 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 
 
 
-#define valvePin BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO
-#define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK
+#define valvePin BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
+#define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
 
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
@@ -184,14 +184,13 @@ static void testTask(void *pv) {
 
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
-	uint32_t duty   =  10;
+	uint32_t duty   =  50;
 
 	for(;;){
 
 		// Ask Xander if this is a good way to do this to avoid misreads
 		if(duty != duty_cycle) duty = duty_cycle;
 		else duty = duty;
-
 		PWM(period, duty);
 	}
 }
@@ -225,7 +224,6 @@ static void ControlTask(void *pv) {
 
 	// Set Pin to ON State
 	GPIO_PortSet(valvePin, valvePinMask);
-
 
 	while (1)
 	{
@@ -262,7 +260,7 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	// Duty Cycle from 0-100 Used for Potentiometer Setup:
 	adcValue = adcValue / 4096.0 * 100;
 	// When Reading from Pressure Sensor
-	//advValue = (int)(adcValue / 4096.0 * 3300 * 1000 / 330
+	//adcValue = (int)(adcValue / 4096.0 * 3300 * 1000 / 330
 
 	PRINTF("ADC Value: %d\t", (int)(adcValue));
 	//PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
@@ -286,8 +284,10 @@ void PWM(uint32_t period, uint32_t duty){
 	float t1 = period * (100 - duty)/100;
 	float t2 = period * (duty)/100;
 
+	// Turn off:
 	GPIO_PortClear(valvePin, valvePinMask);
 	vTaskDelay(pdMS_TO_TICKS(t1));
+	// Turn on:
 	GPIO_PortSet(valvePin, valvePinMask);
 	vTaskDelay(pdMS_TO_TICKS(t2));
 }
