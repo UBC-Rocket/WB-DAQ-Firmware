@@ -184,14 +184,10 @@ static void testTask(void *pv) {
 
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
-	uint32_t duty   =  50;
+
 
 	for(;;){
-
-		// Ask Xander if this is a good way to do this to avoid misreads
-		if(duty != duty_cycle) duty = duty_cycle;
-		else duty = duty;
-		PWM(period, duty);
+		PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
 	}
 }
 
@@ -199,6 +195,7 @@ static void actuatorTask(void *pv){
 static void ControlTask(void *pv) {
 	adc16_config_t adc16ConfigStruct;
 	adc16_channel_config_t adc16ChannelConfigStruct;
+
 
 	BOARD_InitPins();
 	BOARD_BootClockRUN();
@@ -225,12 +222,41 @@ static void ControlTask(void *pv) {
 	// Set Pin to ON State
 	GPIO_PortSet(valvePin, valvePinMask);
 
+	// PID Loop:
+	// Mode: P = 1, PI = 2
+	uint32_t mode = 2;
+	float desired_val = 20;
+
+	float error;
+	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+
+	// Integral Components:
+	float sensor_old;
+	float integral;
+	float sample_time = 0.5;
+
+	float ki = 0.1;
+	float kp = 1;
+	int duty_offset = 50;
+
 	while (1)
 	{
-		vTaskDelay(pdMS_TO_TICKS(500));
+		vTaskDelay(pdMS_TO_TICKS(sample_time*1000)); // Delay in milliseconds
+		sensor_old = sensor;
+		sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
 
-		duty_cycle = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+		error = desired_val - (sensor);
 
+		if (mode == 2){ // PI Controller:
+			integral = sample_time * (sensor - sensor_old);
+			if (integral >= 5) integral = 5;			// Limit the Integral from accumulating
+			if (integral <= 0) integral = 0;
+			duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
+		}
+
+		if (mode == 1){ // P Controller:
+			duty_cycle = duty_offset + (int) kp*(error);
+		}
 	}
 }
 
@@ -281,6 +307,8 @@ void PWM(uint32_t period, uint32_t duty){
 		}
 	}
 
+	// This Should be Integers? Debug and verify T1 and T2
+	// Put Breakpoints to verify t1 and t2
 	float t1 = period * (100 - duty)/100;
 	float t2 = period * (duty)/100;
 
