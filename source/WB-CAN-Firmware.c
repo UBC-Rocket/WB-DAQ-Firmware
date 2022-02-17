@@ -184,8 +184,6 @@ static void testTask(void *pv) {
 
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
-
-
 	for(;;){
 		PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
 	}
@@ -224,19 +222,22 @@ static void ControlTask(void *pv) {
 
 	// PID Loop:
 	// Mode: P = 1, PI = 2
-	uint32_t mode = 2;
-	float desired_val = 20;
+	uint32_t mode = 1;
+	// Reading from Potentiometer:
+	float desired_val = 1100;
+	// Reading from Sensor:
+	//float desired_val = 20;
 
 	float error;
 	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
-
+	float out;
 	// Integral Components:
 	float sensor_old;
 	float integral;
 	float sample_time = 0.5;
 
 	float ki = 0.1;
-	float kp = 1;
+	float kp = 0.01;
 	int duty_offset = 50;
 
 	while (1)
@@ -246,6 +247,7 @@ static void ControlTask(void *pv) {
 		sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
 
 		error = desired_val - (sensor);
+		out = (int) (kp * error);
 
 		if (mode == 2){ // PI Controller:
 			integral = sample_time * (sensor - sensor_old);
@@ -255,7 +257,7 @@ static void ControlTask(void *pv) {
 		}
 
 		if (mode == 1){ // P Controller:
-			duty_cycle = duty_offset + (int) kp*(error);
+			duty_cycle = duty_offset + out;
 		}
 	}
 }
@@ -284,7 +286,8 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	}
 
 	// Duty Cycle from 0-100 Used for Potentiometer Setup:
-	adcValue = adcValue / 4096.0 * 100;
+	//adcValue = adcValue / 4096.0 * 3300  ; // Reads in Percentage
+	adcValue = adcValue / 4096.0 * 3300  ; // Reads in Voltage
 	// When Reading from Pressure Sensor
 	//adcValue = (int)(adcValue / 4096.0 * 3300 * 1000 / 330
 
