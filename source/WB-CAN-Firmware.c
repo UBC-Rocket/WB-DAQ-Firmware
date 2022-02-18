@@ -74,6 +74,7 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
+
 /*******************************************************************************
  * Main
  ******************************************************************************/
@@ -247,7 +248,7 @@ void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chann
 		adcValue = 0; //65536U - adcValue;
 	}
 
-	PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
+	PRINTF("ADC Value: %f [V]\t", (float)(adcValue / 4096.0 * 3.3));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 }
 
