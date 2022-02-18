@@ -279,19 +279,19 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	while (!g_Adc16ConversionDoneFlag)
 	{
 	}
-	adcValue = g_Adc16ConversionValue;
+	adcValue = (float) g_Adc16ConversionValue;
 	if (adcValue > 4100U)
 	{
 		adcValue = 0; //65536U - adcValue;
 	}
 
 	// Duty Cycle from 0-100 Used for Potentiometer Setup:
-	//adcValue = adcValue / 4096.0 * 3300  ; // Reads in Percentage
-	adcValue = adcValue / 4096.0 * 3300  ; // Reads in Voltage
-	// When Reading from Pressure Sensor
-	//adcValue = (int)(adcValue / 4096.0 * 3300 * 1000 / 330
+	//adcValue = adcValue / 4096.0 * 100.0; // Reads in Percentage
+	adcValue = adcValue / 4096.0 * 3.3  ; // Reads in Voltage
+	// When Reading from Pressure Sensor -  Double check this conversion
+	//adcValue = adcValue / 4096.0 * 3300 * 1000 / 330;
 
-	PRINTF("ADC Value: %d\t", (int)(adcValue));
+	PRINTF("ADC Value: %f[V]\t", adcValue);
 	//PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 
