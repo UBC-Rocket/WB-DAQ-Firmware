@@ -81,6 +81,18 @@ void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
 
 
+enum testConfigEnum
+    {
+        POTENTIOMETER, KULITE
+    };
+typedef enum testConfigEnum testConfigType;
+
+testConfigType testConfig = POTENTIOMETER;
+
+float pressureScaling = 3.3;
+
+
+
 /*******************************************************************************
  * Main
  ******************************************************************************/
@@ -223,13 +235,13 @@ static void ControlTask(void *pv) {
 	// PID Loop:
 	// Mode: P = 1, PI = 2
 	uint32_t mode = 1;
-	// Reading from Potentiometer:
-	float desired_val = 1.700; // In ATM
-	// Reading from Sensor:
-	//float desired_val = 20;
 
-	float error;
-	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+
+
+	float error, desired_val, kp;
+
+	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct); // Reads in Voltage
+
 	float out;
 	// Integral Components:
 	float sensor_old;
@@ -237,8 +249,24 @@ static void ControlTask(void *pv) {
 	float sample_time = 0.5;
 
 	float ki = 0.1;
-	float kp = 150.0;
+
 	int duty_offset = 50;
+
+	if(testConfig == KULITE){
+		// Reading from the Sensor
+		desired_val = 1.700; // In ATM
+		kp = 150.0;
+		sensor = sensor * pressureScaling; // To convert Volts to ATM
+	}
+	else if (testConfig == POTENTIOMETER){
+		// Reading from Potentiometer:
+		desired_val = 1.5;
+		kp = 10;
+	}
+	else {
+		PRINTF("NO CONFIG SETUP");
+		for(;;);
+	}
 
 	while (1)
 	{
@@ -274,10 +302,12 @@ void ADC16_IRQ_HANDLER_FUNC(void)
     SDK_ISR_EXIT_BARRIER;
 }
 
+
+//  Function: adcRead
+//	Purpose: Uses the On-Chip ADC to read voltage
+//	Outputs Voltage Reading
 float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
 	float adcValue;
-	float adcValueVolts;
-	float adcValueATM;
 
 	g_Adc16ConversionDoneFlag = false;
 	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
@@ -291,19 +321,14 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	}
 
 	// Duty Cycle from 0-100 Used for Potentiometer Setup:
-	//adcValue = adcValue / 4096.0 * 100.0; // Reads in Percentage
-	adcValue = adcValue / 4096.0 * 3.3  ; // Reads in Voltage
-
-	// When Reading from Pressure Sensor -  Double check this conversion
-	adcValueATM = adcValue * 3.30;
+	adcValue = adcValue / 4096.0 * 3.3  ; // Maps reading to Voltage
 
 	//PRINTF("ADC Value: %f[V]\t", adcValue)
-	PRINTF("ADC Value: %f[ATM]\t", adcValueATM);
+	PRINTF("ADC Value: %f[V]\t ADC Value: %f[ATM]\t", adcValue, adcValue*pressureScaling);
 	PRINTF("Duty: %d\t", duty_cycle);
-	//PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 
-	return adcValueATM;
+	return adcValue;
 }
 
 // PWM
