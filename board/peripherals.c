@@ -37,79 +37,72 @@ component:
  * BOARD_InitPeripherals functional group
  **********************************************************************************************************************/
 /***********************************************************************************************************************
- * I2C3 initialization code
+ * ADC0 initialization code
  **********************************************************************************************************************/
 /* clang-format off */
 /* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
 instance:
-- name: 'I2C3'
-- type: 'i2c'
-- mode: 'I2C_Polling'
+- name: 'ADC0'
+- type: 'adc16'
+- mode: 'ADC'
 - custom_name_enabled: 'false'
-- type_id: 'i2c_2566d7363e7e9aaedabb432110e372d7'
+- type_id: 'adc16_7a29cdeb84266e77f0c7ceac1b49fe2d'
 - functional_group: 'BOARD_InitPeripherals'
-- peripheral: 'I2C3'
+- peripheral: 'ADC0'
 - config_sets:
-  - fsl_i2c:
-    - i2c_mode: 'kI2C_Master'
-    - clockSource: 'BusInterfaceClock'
-    - clockSourceFreq: 'GetFreq'
-    - i2c_master_config:
-      - enableMaster: 'true'
-      - enableStopHold: 'false'
-      - baudRate_Bps: '100000'
-      - glitchFilterWidth: '0'
-    - quick_selection: 'QS_I2C_1'
+  - fsl_adc16:
+    - adc16_config:
+      - referenceVoltageSource: 'kADC16_ReferenceVoltageSourceVref'
+      - clockSource: 'kADC16_ClockSourceAsynchronousClock'
+      - enableAsynchronousClock: 'true'
+      - clockDivider: 'kADC16_ClockDivider8'
+      - resolution: 'kADC16_ResolutionSE12Bit'
+      - longSampleMode: 'kADC16_LongSampleDisabled'
+      - enableHighSpeed: 'false'
+      - enableLowPower: 'false'
+      - enableContinuousConversion: 'false'
+    - adc16_channel_mux_mode: 'kADC16_ChannelMuxA'
+    - adc16_hardware_compare_config:
+      - hardwareCompareModeEnable: 'false'
+    - doAutoCalibration: 'false'
+    - offset: '0'
+    - trigger: 'false'
+    - hardwareAverageConfiguration: 'kADC16_HardwareAverageDisabled'
+    - enable_dma: 'false'
+    - enable_irq: 'false'
+    - adc_interrupt:
+      - IRQn: 'ADC0_IRQn'
+      - enable_interrrupt: 'enabled'
+      - enable_priority: 'false'
+      - priority: '0'
+      - enable_custom_name: 'false'
+    - adc16_channels_config: []
+    - quick_selection: 'QS_ADC16_1'
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
-const i2c_master_config_t I2C3_config = {
-  .enableMaster = true,
-  .enableStopHold = false,
-  .baudRate_Bps = 100000UL,
-  .glitchFilterWidth = 0U
+const adc16_config_t ADC0_config = {
+  .referenceVoltageSource = kADC16_ReferenceVoltageSourceVref,
+  .clockSource = kADC16_ClockSourceAsynchronousClock,
+  .enableAsynchronousClock = true,
+  .clockDivider = kADC16_ClockDivider8,
+  .resolution = kADC16_ResolutionSE12Bit,
+  .longSampleMode = kADC16_LongSampleDisabled,
+  .enableHighSpeed = false,
+  .enableLowPower = false,
+  .enableContinuousConversion = false
 };
+const adc16_channel_mux_mode_t ADC0_muxMode = kADC16_ChannelMuxA;
+const adc16_hardware_average_mode_t ADC0_hardwareAverageMode = kADC16_HardwareAverageDisabled;
 
-static void I2C3_init(void) {
-  /* Initialization function */
-  I2C_MasterInit(I2C3_PERIPHERAL, &I2C3_config, I2C3_CLK_FREQ);
-}
-
-/***********************************************************************************************************************
- * I2C1 initialization code
- **********************************************************************************************************************/
-/* clang-format off */
-/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
-instance:
-- name: 'I2C1'
-- type: 'i2c'
-- mode: 'I2C_Polling'
-- custom_name_enabled: 'false'
-- type_id: 'i2c_2566d7363e7e9aaedabb432110e372d7'
-- functional_group: 'BOARD_InitPeripherals'
-- peripheral: 'I2C1'
-- config_sets:
-  - fsl_i2c:
-    - i2c_mode: 'kI2C_Master'
-    - clockSource: 'BusInterfaceClock'
-    - clockSourceFreq: 'GetFreq'
-    - i2c_master_config:
-      - enableMaster: 'true'
-      - enableStopHold: 'false'
-      - baudRate_Bps: '100000'
-      - glitchFilterWidth: '0'
-    - quick_selection: 'QS_I2C_1'
- * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
-/* clang-format on */
-const i2c_master_config_t I2C1_config = {
-  .enableMaster = true,
-  .enableStopHold = false,
-  .baudRate_Bps = 100000UL,
-  .glitchFilterWidth = 0U
-};
-
-static void I2C1_init(void) {
-  /* Initialization function */
-  I2C_MasterInit(I2C1_PERIPHERAL, &I2C1_config, I2C1_CLK_FREQ);
+static void ADC0_init(void) {
+  /* Initialize ADC16 converter */
+  ADC16_Init(ADC0_PERIPHERAL, &ADC0_config);
+  /* Make sure, that software trigger is used */
+  ADC16_EnableHardwareTrigger(ADC0_PERIPHERAL, false);
+  /* Configure hardware average mode */
+  ADC16_SetHardwareAverage(ADC0_PERIPHERAL, ADC0_hardwareAverageMode);
+  /* Configure channel multiplexing mode */
+  ADC16_SetChannelMuxMode(ADC0_PERIPHERAL, ADC0_muxMode);
 }
 
 /***********************************************************************************************************************
@@ -118,8 +111,7 @@ static void I2C1_init(void) {
 void BOARD_InitPeripherals(void)
 {
   /* Initialize components */
-  I2C3_init();
-  I2C1_init();
+  ADC0_init();
 }
 
 /***********************************************************************************************************************

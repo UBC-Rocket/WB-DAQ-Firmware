@@ -19,6 +19,7 @@
 #include "fsl_dspi.h"
 #include "fsl_dspi_freertos.h"
 #include "fsl_gpio.h"
+#include "fsl_adc16.h"
 #include "fsl_i2c.h"
 #include "fsl_i2c_freertos.h"
 
@@ -39,12 +40,40 @@
 #define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
 /*******************************************************************************
- * Prototypes
+ * Task Prototypes
  ******************************************************************************/
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
+static void ADCTask(void *pv);
 static void tcTask(void *pv);
+
+// ADC Interrupt:
+void ADC16_IRQ_HANDLER_FUNC(void);
+void adcRead(adc16_config_t, adc16_channel_config_t);
+
+
+/*******************************************************************************
+ * ADC Prototypes and Interrupt Variables
+ ******************************************************************************/
+void adcSetup(adc16_config_t, adc16_channel_config_t);
+void adcRead(adc16_config_t, adc16_channel_config_t);
+void ADC16_IRQ_HANDLER_FUNC(void);
+
+volatile bool g_Adc16ConversionDoneFlag = false;
+volatile uint32_t g_Adc16ConversionValue;
+volatile uint32_t g_Adc16InterruptCounter;
+const uint32_t g_Adc16_12bitFullRange = 4096U;
+
+#define ADC16_BASE          ADC0
+#define ADC16_CHANNEL_GROUP 0U
+// This sets what ADC Signal you are using:
+#define ADC16_USER_CHANNEL  18U
+
+#define ADC16_IRQn             ADC0_IRQn
+#define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
+
+
 
 /*******************************************************************************
  * Main
@@ -53,6 +82,7 @@ static void tcTask(void *pv);
 int main(void) {
 
     /* Init board hardware. */
+ 	BOARD_InitPins();
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
@@ -68,52 +98,61 @@ int main(void) {
     BaseType_t error;
 
     // Create the BlinkTest
-    if ((error = xTaskCreate(
-    blinkTask,
-	"Blink LED Task",
-    1024,
-	NULL,
-	0,
-	NULL)) != pdPASS){
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    		;
-
+    if ((error = xTaskCreate(blinkTask,
+		"Blink LED Task",
+		512,
+		NULL,
+		0,
+		NULL)) != pdPASS){
+			printf("Task init failed: %ld\n", error);
+			for (;;)
+				;
     };
 
 
     if ((error =  xTaskCreate(testTask,
-    "Test Debugging Task",
-	1024,
-	NULL,
-	0,
-	NULL)) != pdPASS) {
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    	    ;
+		"Test Debugging Task",
+		512,
+		NULL,
+		0,
+		NULL)) != pdPASS) {
+			printf("Task init failed: %ld\n", error);
+			for (;;)
+				;
     };
 
     if ((error =  xTaskCreate(actuatorTask,
-    "Actuator Task",
-	1024,
-	NULL,
-	0,
-	NULL)) != pdPASS) {
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    	    ;
-    };
+		"Actuator Task",
+		512,
+		NULL,
+		0,
+		NULL)) != pdPASS) {
+			printf("Task init failed: %ld\n", error);
+			for (;;)
+				;
+		};
 
     if ((error =  xTaskCreate(tcTask,
-    "Thermocouple Task",
-	1024,
-	NULL,
-	0,
-	NULL)) != pdPASS) {
-    	printf("Task init failed: %ld\n", error);
-    	for (;;)
-    	    ;
-    };
+        "Thermocouple Task",
+    	512,
+    	NULL,
+    	0,
+    	NULL)) != pdPASS) {
+        	printf("Task init failed: %ld\n", error);
+        	for (;;)
+        	    ;
+        };
+
+    if ((error =  xTaskCreate(ADCTask,
+        "ADC Task",
+    	512,
+    	NULL,
+    	0,
+    	NULL)) != pdPASS) {
+        	printf("ADC Task init failed: %ld\n", error);
+        	for (;;)
+        	    ;
+        };
 
     vTaskStartScheduler();
 
@@ -137,17 +176,81 @@ static void testTask(void *pv) {
 	}
 }
 
-
-
 static void actuatorTask(void *pv){
 	for(;;){
 		// Toggle indefinitely to show they work, will add control loop later
 		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
 		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
-		vTaskDelay(pdMS_TO_TICKS(200));
+		vTaskDelay(pdMS_TO_TICKS(180));
+		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
+		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
+		vTaskDelay(pdMS_TO_TICKS(20));
 	}
 }
 
+
+static void ADCTask(void *pv) {
+	adc16_config_t adc16ConfigStruct;
+	adc16_channel_config_t adc16ChannelConfigStruct;
+
+	BOARD_InitPins();
+	BOARD_BootClockRUN();
+	BOARD_InitDebugConsole();
+	EnableIRQ(ADC16_IRQn);
+
+	// Configure ADC:
+	ADC16_GetDefaultConfig(&adc16ConfigStruct);
+	adc16ChannelConfigStruct.channelNumber                        = ADC16_USER_CHANNEL;
+	adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
+
+	// Calibration for Positive/Negative (refer to SDK-Example)
+	if (kStatus_Success == ADC16_DoAutoCalibration(ADC16_BASE))
+	{
+		PRINTF("ADC16_DoAutoCalibration() Done.\r\n");
+	}
+	else
+	{
+		PRINTF("ADC16_DoAutoCalibration() Failed.\r\n");
+	}
+
+	g_Adc16InterruptCounter = 0U;
+
+	// Read from ADC
+	while (1)
+	{
+		vTaskDelay(pdMS_TO_TICKS(500));
+		adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+
+	}
+}
+
+void ADC16_IRQ_HANDLER_FUNC(void)
+{
+    g_Adc16ConversionDoneFlag = true;
+    /* Read conversion result to clear the conversion completed flag. */
+    g_Adc16ConversionValue = ADC16_GetChannelConversionValue(ADC16_BASE, ADC16_CHANNEL_GROUP);
+    g_Adc16InterruptCounter++;
+    SDK_ISR_EXIT_BARRIER;
+}
+
+
+void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
+	uint32_t adcValue;
+
+	g_Adc16ConversionDoneFlag = false;
+	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
+	while (!g_Adc16ConversionDoneFlag)
+	{
+	}
+	adcValue = g_Adc16ConversionValue;
+	if (adcValue > 4100U)
+	{
+		adcValue = 0; //65536U - adcValue;
+	}
+
+	PRINTF("ADC Value: %f [V]\t", (float)(adcValue / 4096.0 * 3.3));
+	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
+}
 
 /*
  * Reads from a thermocouple. If we need more configuration I might make this more general to get arbitrary registers
