@@ -45,19 +45,18 @@
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
-static void ADCTask(void *pv);
+static void ControlTask(void *pv);
 static void tcTask(void *pv);
 
 // ADC Interrupt:
 void ADC16_IRQ_HANDLER_FUNC(void);
-void adcRead(adc16_config_t, adc16_channel_config_t);
 
 
 /*******************************************************************************
  * ADC Prototypes and Interrupt Variables
  ******************************************************************************/
 void adcSetup(adc16_config_t, adc16_channel_config_t);
-void adcRead(adc16_config_t, adc16_channel_config_t);
+float adcRead(adc16_config_t, adc16_channel_config_t);
 void ADC16_IRQ_HANDLER_FUNC(void);
 
 volatile bool g_Adc16ConversionDoneFlag = false;
@@ -74,6 +73,11 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
+#define valvePin BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
+#define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
+
+void PWM(uint32_t, uint32_t);
+uint32_t duty_cycle = 10;
 
 /*******************************************************************************
  * Main
@@ -143,8 +147,8 @@ int main(void) {
         	    ;
         };
 
-    if ((error =  xTaskCreate(ADCTask,
-        "ADC Task",
+    if ((error =  xTaskCreate(ControlTask,
+        "Control Task",
     	512,
     	NULL,
     	0,
@@ -177,21 +181,17 @@ static void testTask(void *pv) {
 }
 
 static void actuatorTask(void *pv){
+	uint32_t period = 100;
 	for(;;){
-		// Toggle indefinitely to show they work, will add control loop later
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
-		vTaskDelay(pdMS_TO_TICKS(180));
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK);
-		GPIO_PortToggle(BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO, BOARD_INITPINS_HS_SWITCH_B_IN1_GPIO_PIN_MASK);
-		vTaskDelay(pdMS_TO_TICKS(20));
+		PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
 	}
 }
 
 
-static void ADCTask(void *pv) {
+static void ControlTask(void *pv) {
 	adc16_config_t adc16ConfigStruct;
 	adc16_channel_config_t adc16ChannelConfigStruct;
+
 
 	BOARD_InitPins();
 	BOARD_BootClockRUN();
@@ -215,12 +215,51 @@ static void ADCTask(void *pv) {
 
 	g_Adc16InterruptCounter = 0U;
 
-	// Read from ADC
+	// Set Pin to ON State
+	//GPIO_PortSet(valvePin, valvePinMask);
+	GPIO_PortClear(valvePin, valvePinMask);
+	// PID Loop:
+	// Mode: P = 1, PI = 2
+	uint32_t mode = 1;
+	// Reading from Potentiometer:
+	float desired_val = 1.700; // In ATM
+	// Reading from Sensor:
+	//float desired_val = 20;
+
+	float error;
+	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+	float out;
+	// Integral Components:
+	float sensor_old;
+	float integral;
+	float sample_time = 0.5;
+
+	float ki = 0.1;
+	float kp = 150.0;
+	int duty_offset = 50;
+
 	while (1)
 	{
-		vTaskDelay(pdMS_TO_TICKS(500));
-		adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+		vTaskDelay(pdMS_TO_TICKS(sample_time*1000)); // Delay in milliseconds
+		sensor_old = sensor;
+		sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
 
+		error = desired_val - (sensor);
+		out = (int) (kp * error);
+
+
+		if (mode == 2){ // PI Controller:
+			integral = sample_time * (sensor - sensor_old);
+			if (integral >= 5) integral = 5;			// Limit the Integral from accumulating
+			if (integral <= 0) integral = 0;
+			duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
+		}
+
+		if (mode == 1){ // P Controller with limited DutyCycle:
+			if (duty_offset + out > 100) 	duty_cycle = 100;
+			else if(duty_offset + out < 0)  duty_cycle = 0;
+			else duty_cycle = duty_offset + out;
+		}
 	}
 }
 
@@ -233,24 +272,66 @@ void ADC16_IRQ_HANDLER_FUNC(void)
     SDK_ISR_EXIT_BARRIER;
 }
 
-
-void adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
-	uint32_t adcValue;
+float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
+	float adcValue;
+	float adcValueVolts;
+	float adcValueATM;
 
 	g_Adc16ConversionDoneFlag = false;
 	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
 	while (!g_Adc16ConversionDoneFlag)
 	{
 	}
-	adcValue = g_Adc16ConversionValue;
+	adcValue = (float) g_Adc16ConversionValue;
 	if (adcValue > 4100U)
 	{
 		adcValue = 0; //65536U - adcValue;
 	}
 
-	PRINTF("ADC Value: %f [V]\t", (float)(adcValue / 4096.0 * 3.3));
+
+	// Duty Cycle from 0-100 Used for Potentiometer Setup:
+	//adcValue = adcValue / 4096.0 * 100.0; // Reads in Percentage
+	adcValue = adcValue / 4096.0 * 3.3  ; // Reads in Voltage
+
+	// When Reading from Pressure Sensor -  Double check this conversion
+	adcValueATM = adcValue * 3.30;
+
+	//PRINTF("ADC Value: %f[V]\t", adcValue)
+	PRINTF("ADC Value: %f[ATM]\t", adcValueATM);
+	PRINTF("Duty: %d\t", duty_cycle);
+	//PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
 	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
+
+	return adcValueATM;
 }
+
+// PWM
+//	- Duty cycle uint32 between 0 and 100
+//
+
+void PWM(uint32_t period, uint32_t duty){
+	if (duty < 0 || duty > 100){
+		printf("Entered Duty Cycle is out of bounds. \n");
+		for(;;){
+			// Better Debugging later
+		}
+	}
+
+	// This Should be Integers? Debug and verify T1 and T2
+	// Put Breakpoints to verify t1 and t2
+	float t1 = period * (100 - duty)/100;
+	float t2 = period * (duty)/100;
+
+	// Turn off:
+	GPIO_PortClear(valvePin, valvePinMask);
+	vTaskDelay(pdMS_TO_TICKS(t1));
+	// Turn on:
+	GPIO_PortSet(valvePin, valvePinMask);
+	vTaskDelay(pdMS_TO_TICKS(t2));
+}
+
+
+
 
 /*
  * Reads from a thermocouple. If we need more configuration I might make this more general to get arbitrary registers
