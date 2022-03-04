@@ -73,13 +73,11 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
-
 #define valvePin BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
 #define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
 
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
-
 
 /*******************************************************************************
  * Main
@@ -289,6 +287,7 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	{
 		adcValue = 0; //65536U - adcValue;
 	}
+
 
 	// Duty Cycle from 0-100 Used for Potentiometer Setup:
 	//adcValue = adcValue / 4096.0 * 100.0; // Reads in Percentage
