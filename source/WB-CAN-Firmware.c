@@ -23,6 +23,8 @@
 #include "fsl_i2c.h"
 #include "fsl_i2c_freertos.h"
 
+#include "SEGGER_RTT.h"
+
 
 /*******************************************************************************
  * Definitions
