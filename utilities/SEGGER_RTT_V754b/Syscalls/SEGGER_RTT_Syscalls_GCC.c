@@ -51,7 +51,8 @@ Revision: $Rev: 24316 $
 */
 #if (defined __GNUC__) && !(defined __SES_ARM) && !(defined __CROSSWORKS_ARM) && !(defined __ARMCC_VERSION) && !(defined __CC_ARM)
 
-#include <reent.h>  // required for _write_r
+// Davin: Can get it to work without this, unsure if it is going to cause issues.
+// #include <reent.h>  // required for _write_r
 #include "SEGGER_RTT.h"
 
 
@@ -73,8 +74,8 @@ struct _reent;
 *
 **********************************************************************
 */
-_ssize_t _write  (int file, const void *ptr, size_t len);
-_ssize_t _write_r(struct _reent *r, int file, const void *ptr, size_t len);
+size_t _write  (int file, const void *ptr, size_t len);
+size_t _write_r(struct _reent *r, int file, const void *ptr, size_t len);
 
 /*********************************************************************
 *
@@ -93,7 +94,7 @@ _ssize_t _write_r(struct _reent *r, int file, const void *ptr, size_t len);
 *   including stdout.
 *   Write data via RTT.
 */
-_ssize_t _write(int file, const void *ptr, size_t len) {
+size_t _write(int file, const void *ptr, size_t len) {
   (void) file;  /* Not used, avoid warning */
   SEGGER_RTT_Write(0, ptr, len);
   return len;
@@ -109,7 +110,7 @@ _ssize_t _write(int file, const void *ptr, size_t len) {
 *   including stdout.
 *   Write data via RTT.
 */
-_ssize_t _write_r(struct _reent *r, int file, const void *ptr, size_t len) {
+size_t _write_r(struct _reent *r, int file, const void *ptr, size_t len) {
   (void) file;  /* Not used, avoid warning */
   (void) r;     /* Not used, avoid warning */
   SEGGER_RTT_Write(0, ptr, len);
