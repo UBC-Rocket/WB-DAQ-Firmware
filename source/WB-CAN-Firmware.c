@@ -183,8 +183,13 @@ static void testTask(void *pv) {
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		i = SEGGER_RTT_Read(0, hello, 10);
-		hello[9]= '\0';
-		printf("%s\n", hello);
+		hello[i]= '\0';
+		if(i != 0){
+			printf("%s\n", hello);
+		}
+		else{
+			//pass
+		}
 	}
 }
 
