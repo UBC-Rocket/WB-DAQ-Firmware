@@ -178,9 +178,21 @@ static void blinkTask(void *pv) {
 }
 
 static void testTask(void *pv) {
+	char hello[10];
+	unsigned int i = 0;
 	while(1) {
-		vTaskDelay(pdMS_TO_TICKS(500));
+		vTaskDelay(pdMS_TO_TICKS(200));
 		SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
+
+		i = SEGGER_RTT_Read(0, hello, 10);
+		hello[i]= '\0';
+		if(i != 0){
+			printf("%s\n", hello);
+		}
+		else{
+			//pass
+		}
+
 	}
 }
 
@@ -301,10 +313,10 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	adcValueATM = adcValue * 3.30;
 
 	//PRINTF("ADC Value: %f[V]\t", adcValue)
-	PRINTF("ADC Value: %f[ATM]\t", adcValueATM);
-	PRINTF("Duty: %d\t", duty_cycle);
+	//PRINTF("ADC Value: %f[ATM]\t", adcValueATM);
+	//PRINTF("Duty: %d\t", duty_cycle);
 	//PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
-	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
+	//PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 
 	return adcValueATM;
 }
