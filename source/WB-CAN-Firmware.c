@@ -81,6 +81,8 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
 
+uint8_t pwm_active = 0;
+
 
 enum testConfigEnum
     {
@@ -189,16 +191,23 @@ static void blinkTask(void *pv) {
 }
 
 static void testTask(void *pv) {
-	char hello[10];
+	char buffer[10];
 	unsigned int i = 0;
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
-		SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
+		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
 
-		i = SEGGER_RTT_Read(0, hello, 10);
-		hello[i]= '\0';
+		i = SEGGER_RTT_Read(0, buffer, 10);
+		buffer[i]= '\0';
 		if(i != 0){
-			printf("%s\n", hello);
+			printf("%s\n", buffer);
+
+			if( strcmp(buffer, "p") == 0){
+				printf("Change Works\n");
+				pwm_active = 1;
+			}
+			else
+				pwm_active = 0;
 		}
 		else{
 			//pass
@@ -210,6 +219,7 @@ static void testTask(void *pv) {
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
 	for(;;){
+		while(!pwm_active);
 		PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
 	}
 }
@@ -274,7 +284,7 @@ static void ControlTask(void *pv) {
 	else if (testConfig == POTENTIOMETER){
 		// Reading from Potentiometer:
 		desired_val = 1.5;
-		kp = 10;
+		kp = 50;
 	}
 	else {
 		PRINTF("NO CONFIG SETUP");
@@ -291,7 +301,7 @@ static void ControlTask(void *pv) {
 		out = (int) (kp * error);
 
 
-		if (mode == 2){ // PI Controller:
+		if (mode == 2){ // PI Controller: Have not Tested
 			integral = sample_time * (sensor - sensor_old);
 			if (integral >= 5) integral = 5;			// Limit the Integral from accumulating
 			if (integral <= 0) integral = 0;
@@ -322,6 +332,7 @@ void ADC16_IRQ_HANDLER_FUNC(void)
 float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
 	float adcValue;
 
+
 	g_Adc16ConversionDoneFlag = false;
 	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
 	while (!g_Adc16ConversionDoneFlag)
@@ -333,14 +344,17 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 		adcValue = 0; //65536U - adcValue;
 	}
 
-
-	// Duty Cycle from 0-100 Used for Potentiometer Setup:
-	adcValue = adcValue / 4096.0 * 3.3  ; // Maps reading to Voltage
+	// Maps reading to Voltage
+	adcValue = adcValue / 4096.0 * 3.3  ;
 
 	//PRINTF("ADC Value: %f[V]\t", adcValue)
-	PRINTF("ADC Value: %f[V]\t ADC Value: %f[ATM]\t", adcValue, adcValue*pressureScaling);
-	PRINTF("Duty: %d\t", duty_cycle);
-	PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
+	//PRINTF("ADC Value: %f[V]\t ADC Value: %f[ATM]\t", adcValue, adcValue*pressureScaling);
+	//PRINTF("Duty: %d\t", duty_cycle);
+	//PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
+
+	static char data_out[80];
+	sprintf(data_out, "%f[V],\t\t%d[%]\r", adcValue, duty_cycle);
+	SEGGER_RTT_WriteString(0, data_out);
 
 	return adcValue;
 }
