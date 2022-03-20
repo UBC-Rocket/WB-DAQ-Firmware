@@ -23,6 +23,8 @@
 #include "fsl_i2c.h"
 #include "fsl_i2c_freertos.h"
 
+#include "SEGGER_RTT.h"
+
 
 /*******************************************************************************
  * Definitions
@@ -73,7 +75,6 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
-
 #define valvePin BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
 #define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
 
@@ -87,10 +88,8 @@ enum testConfigEnum
     };
 typedef enum testConfigEnum testConfigType;
 
-testConfigType testConfig = POTENTIOMETER;
-
+testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
 float pressureScaling = 3.3;
-
 
 
 /*******************************************************************************
@@ -104,6 +103,7 @@ int main(void) {
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
+    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL);
 #ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
     /* Init FSL debug console. */
     BOARD_InitDebugConsole();
@@ -189,8 +189,21 @@ static void blinkTask(void *pv) {
 }
 
 static void testTask(void *pv) {
+	char hello[10];
+	unsigned int i = 0;
 	while(1) {
-		vTaskDelay(pdMS_TO_TICKS(500));
+		vTaskDelay(pdMS_TO_TICKS(200));
+		SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
+
+		i = SEGGER_RTT_Read(0, hello, 10);
+		hello[i]= '\0';
+		if(i != 0){
+			printf("%s\n", hello);
+		}
+		else{
+			//pass
+		}
+
 	}
 }
 
@@ -319,6 +332,7 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	{
 		adcValue = 0; //65536U - adcValue;
 	}
+
 
 	// Duty Cycle from 0-100 Used for Potentiometer Setup:
 	adcValue = adcValue / 4096.0 * 3.3  ; // Maps reading to Voltage
