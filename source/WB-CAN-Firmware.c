@@ -23,6 +23,8 @@
 #include "fsl_i2c.h"
 #include "fsl_i2c_freertos.h"
 
+#include "SEGGER_RTT.h"
+
 
 /*******************************************************************************
  * Definitions
@@ -90,6 +92,7 @@ int main(void) {
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
+    SEGGER_RTT_ConfigUpBuffer(0, NULL, NULL, 0, SEGGER_RTT_MODE_BLOCK_IF_FIFO_FULL);
 #ifndef BOARD_INIT_DEBUG_CONSOLE_PERIPHERAL
     /* Init FSL debug console. */
     BOARD_InitDebugConsole();
@@ -177,6 +180,7 @@ static void blinkTask(void *pv) {
 static void testTask(void *pv) {
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(500));
+		SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
 	}
 }
 
