@@ -182,6 +182,8 @@ static void testTask(void *pv) {
 	unsigned int i = 0;
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
+		SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
+
 		i = SEGGER_RTT_Read(0, hello, 10);
 		hello[i]= '\0';
 		if(i != 0){
@@ -190,6 +192,7 @@ static void testTask(void *pv) {
 		else{
 			//pass
 		}
+
 	}
 }
 
