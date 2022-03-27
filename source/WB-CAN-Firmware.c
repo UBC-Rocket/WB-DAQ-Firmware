@@ -249,7 +249,7 @@ static void actuatorTask(void *pv){
 		}
 		else if (data == 1) {
 			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
-			printf("Hello\n");
+			//printf("Hello\n");
 		}
 		else
 		{
@@ -318,7 +318,7 @@ static void ControlTask(void *pv) {
 	else if (testConfig == POTENTIOMETER){
 		// Reading from Potentiometer:
 		desired_val = 1.5;
-		kp = 50;
+		kp = 1;//50;
 	}
 	else {
 		PRINTF("NO CONFIG SETUP");
