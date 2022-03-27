@@ -61,6 +61,10 @@ void BOARD_InitDebugConsole(void);
 }
 #endif /* __cplusplus */
 
+/* CAN Protocol */
+#define CAN_CLK_SOURCE (kFLEXCAN_ClkSrc1)
+#define CAN_CLK_FREQ   CLOCK_GetFreq(kCLOCK_BusClk)
+
 #endif /* _BOARD_H_ */
 
 

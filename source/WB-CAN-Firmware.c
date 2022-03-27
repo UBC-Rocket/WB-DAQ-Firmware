@@ -22,6 +22,7 @@
 #include "fsl_adc16.h"
 #include "fsl_i2c.h"
 #include "fsl_i2c_freertos.h"
+#include "hal_can.h"
 
 #include "SEGGER_RTT.h"
 
@@ -41,6 +42,10 @@
 #define TC_I2C3_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
 #define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
+/* Task priorities. Will update once more finalized */
+#define can_task_PRIORITY (configMAX_PRIORITIES - 1)
+
+
 /*******************************************************************************
  * Task Prototypes
  ******************************************************************************/
@@ -49,6 +54,7 @@ static void testTask(void *pv);
 static void actuatorTask(void *pv);
 static void ControlTask(void *pv);
 static void tcTask(void *pv);
+static void CanTask(void *pv);
 
 // ADC Interrupt:
 void ADC16_IRQ_HANDLER_FUNC(void);
@@ -100,6 +106,8 @@ int main(void) {
 
     NVIC_SetPriority(TC_I2C1_IRQN, 3);
     NVIC_SetPriority(TC_I2C3_IRQN, 3);
+	NVIC_SetPriority(CAN0_ORed_Message_buffer_IRQn, 5);
+	NVIC_SetPriority(CAN1_ORed_Message_buffer_IRQn, 5);
 
 
     BaseType_t error;
@@ -160,6 +168,17 @@ int main(void) {
         	for (;;)
         	    ;
         };
+
+	if ((error = xTaskCreate(CanTask,
+		"Can Task",
+		512,
+		NULL,
+		can_task_PRIORITY,
+		NULL)) != pdPASS) {
+			printf("Can Task init failed: %ld\n", error);
+			for (;;)
+				;
+		};
 
     vTaskStartScheduler();
 
@@ -432,5 +451,57 @@ static void tcTask(void *pv){
 
 		vTaskDelay(pdMS_TO_TICKS(500));
     }
+}
+
+hal_can_packet_t rxPacket;
+hal_can_packet_t txPacket;
+flexcan_frame_t rxFrame;
+char *tc_names[] = { "HP Tank Outlet TC", "LOX Fill TC", "LOX Bleed TC" };
+char *pt_names[] = { "HP Tank PT", "Fuel Tank PT", "Fuel Injector PT",
+		"LOX Tank PT", "LOX Injector PT", "Igniter Chamber PT",
+		"IG GOX Tank PT", "IG Fuel Tank PT" };
+/* Thermocouple data in C */
+float tc_data[sizeof(tc_names)];
+/* Pressure transducer data in kPa */
+float pt_data[sizeof(pt_names)];
+static void CanTask(void *pv) {
+	vTaskSuspend(NULL);
+	hal_can_handle_t can_handle;
+	canInit(&can_handle, CAN1);
+	for (;;) {
+		canReceive(&can_handle, &rxFrame);
+		printf("CAN received, b0: %d, b1: %d\n", rxFrame.dataByte0, rxFrame.dataByte1);
+		canSend(&can_handle, 0x123, (hal_can_packet_t){{'a', 'b', 'c', 'd'}}, 4);
+
+		hal_can_packet_id_t id = canGetId(&rxFrame);
+		switch (id) {
+		case can_packet_id_pt:{
+			hal_can_pt_id_t sensor_id = canGetSensorId(&rxFrame);
+			float pressure = canGetFloatValue(&rxFrame);
+			pt_data[sensor_id] = pressure;
+			break;
+		}
+		case can_packet_id_tc:{
+			hal_can_tc_id_t sensor_id = canGetSensorId(&rxFrame);
+			float temp = canGetFloatValue(&rxFrame);
+			tc_data[sensor_id] = temp;
+			break;
+		}
+		default:
+			break;
+		}
+
+		/* For debugging sending side of can bus communication */
+//		canSetId(&txPacket, can_packet_id_pt);
+//		canSetSensorId(&txPacket, can_pt_1);
+//		canSetSensorValue(&txPacket, 5.3);
+//		canSend(&can_handle, 0x123, txPacket, 6);
+//
+//		canSetId(&txPacket, can_packet_id_tc);
+//		canSetSensorId(&txPacket, can_tc_1);
+//		canSetSensorValue(&txPacket, 45.7);
+//		canSend(&can_handle, 0x123, txPacket, 6);
+//		vTaskDelay(pdMS_TO_TICKS(1000));
+	}
 }
 

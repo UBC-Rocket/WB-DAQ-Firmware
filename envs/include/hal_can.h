@@ -8,12 +8,7 @@
 #include "FreeRTOS.h"
 #include "semphr.h"
 
-#ifdef COMPILE_BOARD
 #include "fsl_flexcan.h"
-
-#elif defined(COMPILE_x86)
-#include "MK66F18.h"
-#endif
 
 /*******************************************************************************
  * Definitions
@@ -40,8 +35,6 @@ typedef enum {
 	can_tc_1,
 } hal_can_tc_id_t;
 
-#ifdef COMPILE_BOARD
-
 typedef struct _hal_can_handle_t {
 	CAN_Type *base;
 	flexcan_config_t config;
@@ -52,57 +45,6 @@ typedef struct _hal_can_handle_t {
 	SemaphoreHandle_t rxSem;
 	SemaphoreHandle_t txSem;
 } hal_can_handle_t;
-
-#elif defined(COMPILE_x86)
-
-typedef struct _hal_can_handle_t {
-	CAN_Type *base;
-	SemaphoreHandle_t rxSem;
-	SemaphoreHandle_t txSem;
-} hal_can_handle_t;
-
-
-/* FlexCAN message frame structure. This is copy pasted from fsl_flexcan.h,
- * since although it's a generic frame structure that's nice to use we can't
- * include the rest of the hardware specific stuff from that file */
-typedef struct _flexcan_frame
-{
-    struct
-    {
-        uint32_t timestamp : 16; /*!< FlexCAN internal Free-Running Counter Time Stamp. */
-        uint32_t length : 4;     /*!< CAN frame payload length in bytes(Range: 0~8). */
-        uint32_t type : 1;       /*!< CAN Frame Type(DATA or REMOTE). */
-        uint32_t format : 1;     /*!< CAN Frame Identifier(STD or EXT format). */
-        uint32_t : 1;            /*!< Reserved. */
-        uint32_t idhit : 9;      /*!< CAN Rx FIFO filter hit id(This value is only used in Rx FIFO receive mode). */
-    };
-    struct
-    {
-        uint32_t id : 29; /*!< CAN Frame Identifier, should be set using FLEXCAN_ID_EXT() or FLEXCAN_ID_STD() macro. */
-        uint32_t : 3;     /*!< Reserved. */
-    };
-    union
-    {
-        struct
-        {
-            uint32_t dataWord0; /*!< CAN Frame payload word0. */
-            uint32_t dataWord1; /*!< CAN Frame payload word1. */
-        };
-        struct
-        {
-            uint8_t dataByte3; /*!< CAN Frame payload byte3. */
-            uint8_t dataByte2; /*!< CAN Frame payload byte2. */
-            uint8_t dataByte1; /*!< CAN Frame payload byte1. */
-            uint8_t dataByte0; /*!< CAN Frame payload byte0. */
-            uint8_t dataByte7; /*!< CAN Frame payload byte7. */
-            uint8_t dataByte6; /*!< CAN Frame payload byte6. */
-            uint8_t dataByte5; /*!< CAN Frame payload byte5. */
-            uint8_t dataByte4; /*!< CAN Frame payload byte4. */
-        };
-    };
-} flexcan_frame_t;
-
-#endif
 
 /*******************************************************************************
  * Declarations
