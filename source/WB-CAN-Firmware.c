@@ -181,7 +181,7 @@ int main(void) {
 
 /*******************************************************************************
  * Tasks
- ******************************************************************************/
+ ****************************************tr**************************************/
 static void blinkTask(void *pv) {
 	while(1) {
 
@@ -190,9 +190,27 @@ static void blinkTask(void *pv) {
 	}
 }
 
+SemaphoreHandle_t semaphore_PWMActive;
+
+
 static void testTask(void *pv) {
+    semaphore_PWMActive = xSemaphoreCreateBinary();
+
+    if( semaphore_PWMActive == NULL )
+	{
+		printf("Semaphore was not created Properly");
+		for(;;);
+    	/* There was insufficient FreeRTOS heap available for the semaphore to be created successfully. */
+	}
+	else
+	{
+		/* The semaphore can now be used. Its handle is stored in the xSemahore variable.  Calling xSemaphoreTake() on the semaphore here
+		will fail until the semaphore has first been given. */
+	}
+
 	char buffer[10];
 	unsigned int i = 0;
+	UBaseType_t semData;
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
@@ -204,10 +222,13 @@ static void testTask(void *pv) {
 
 			if( strcmp(buffer, "p") == 0){
 				printf("Change Works\n");
-				pwm_active = 1;
+
+				semData = xSemaphoreTake( semaphore_PWMActive, 10 );
+				printf(semData);
 			}
-			else
-				pwm_active = 0;
+			else{
+				xSemaphoreGive(semaphore_PWMActive);
+			}
 		}
 		else{
 			//pass
@@ -218,9 +239,22 @@ static void testTask(void *pv) {
 
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
+	UBaseType_t data;
 	for(;;){
-		while(!pwm_active);
-		PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
+		data = uxSemaphoreGetCount( semaphore_PWMActive );
+		if (data == 0) {
+			printf("Waiting for Semaphore\n");
+			vTaskDelay(pdMS_TO_TICKS(200));
+
+		}
+		else if (data == 1) {
+			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
+			printf("Hello\n");
+		}
+		else
+		{
+			printf("god knows what's wrong\n");
+		}
 	}
 }
 
