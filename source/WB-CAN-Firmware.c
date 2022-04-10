@@ -41,14 +41,19 @@
 #define TC_I2C3_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
 #define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
+#define BUFFERSIZE 10
 /*******************************************************************************
  * Task Prototypes
  ******************************************************************************/
+static void mainTask(void *pv);
+
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
 static void ControlTask(void *pv);
 static void tcTask(void *pv);
+
+static void RTTreceive(void *pv);
 
 // ADC Interrupt:
 void ADC16_IRQ_HANDLER_FUNC(void);
@@ -94,6 +99,12 @@ testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiomet
 float pressureScaling = 3.3;
 
 
+
+
+
+
+
+
 /*******************************************************************************
  * Main
  ******************************************************************************/
@@ -130,8 +141,8 @@ int main(void) {
     };
 
 
-    if ((error =  xTaskCreate(testTask,
-		"Test Debugging Task",
+    if ((error =  xTaskCreate(mainTask,
+		"Main Task",
 		512,
 		NULL,
 		0,
@@ -140,6 +151,17 @@ int main(void) {
 			for (;;)
 				;
     };
+
+    if ((error =  xTaskCreate(RTTreceive,
+    		"RTT Receive Task",
+    		512,
+    		NULL,
+    		0,
+    		NULL)) != pdPASS) {
+    			printf("Task init failed: %ld\n", error);
+    			for (;;)
+    				;
+        };
 
     if ((error =  xTaskCreate(actuatorTask,
 		"Actuator Task",
@@ -190,45 +212,85 @@ static void blinkTask(void *pv) {
 	}
 }
 
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Initialize Semaphores:
+SemaphoreHandle_t semaphore_Message;
 SemaphoreHandle_t semaphore_PWMActive;
 
+// Create Message Type that takes specific values using Enumerate:
+enum messageEnum
+    {
+        DPR_Pause, DPR_Resume
+    };
+typedef enum messageEnum messageType;
+messageType message;
 
-static void testTask(void *pv) {
+/*
+// Description:	This task reads the current message and sets the program to different settings.
+// Note:		This is not a queue and any message written twice before being acted on is overwritten.
+//				Future Revision will likely be a queue.
+*/
+static void mainTask(void *pv){
+
+	// Create Semaphores:
+    semaphore_Message = xSemaphoreCreateBinary();
     semaphore_PWMActive = xSemaphoreCreateBinary();
 
-    if( semaphore_PWMActive == NULL )
-	{
-		printf("Semaphore was not created Properly");
-		for(;;);
-    	/* There was insufficient FreeRTOS heap available for the semaphore to be created successfully. */
-	}
-	else
-	{
-		/* The semaphore can now be used. Its handle is stored in the xSemahore variable.  Calling xSemaphoreTake() on the semaphore here
-		will fail until the semaphore has first been given. */
+
+    // Forever Loop:
+	for(;;){
+		vTaskDelay(pdMS_TO_TICKS(200));
+
+		// Wait for message
+		while(uxSemaphoreGetCount(semaphore_Message) == 0){
+		};
+
+		// Semaphore is Available, so now we can take it and read the message:
+		xSemaphoreTake(semaphore_Message, 10);
+
+		// Feature Setting Logic:
+		if (message == DPR_Pause){
+			xSemaphoreTake( semaphore_PWMActive, 10 );
+		}
+		else if(message == DPR_Resume){
+			xSemaphoreGive(semaphore_PWMActive);
+		}
+		else {
+			//pass;
+		}
+
+		xSemaphoreGive(semaphore_Message);
 	}
 
-	char buffer[10];
+}
+
+
+// Task that is constantly waiting for RTT
+static void RTTreceive(void *pv) {
+	char buffer[BUFFERSIZE];
 	unsigned int i = 0;
-	UBaseType_t semData;
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
 
-		i = SEGGER_RTT_Read(0, buffer, 10);
+		i = SEGGER_RTT_Read(0, buffer, BUFFERSIZE);
 		buffer[i]= '\0';
 		if(i != 0){
-			printf("%s\n", buffer);
-
 			if( strcmp(buffer, "p") == 0){
-				printf("Change Works\n");
-
-				semData = xSemaphoreTake( semaphore_PWMActive, 10 );
-				printf(semData);
+				xSemaphoreTake(semaphore_Message, 10);
+				message = DPR_Pause;
+				xSemaphoreGive(semaphore_Message);
+				SEGGER_RTT_WriteString(0, "Success: Received DPR_Pause Command./n");
 			}
-			else{
-				xSemaphoreGive(semaphore_PWMActive);
+			if( strcmp(buffer, "o") == 0){
+				xSemaphoreTake(semaphore_Message, 10);
+				message = DPR_Resume;
+				xSemaphoreGive(semaphore_Message);
+				SEGGER_RTT_WriteString(0, "Success: Received DPR_Resume Command./n");
 			}
+			printf("%s\n", buffer);
 		}
 		else{
 			//pass
@@ -237,6 +299,15 @@ static void testTask(void *pv) {
 	}
 }
 
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+
+
+
+
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
 	UBaseType_t data;
@@ -244,7 +315,7 @@ static void actuatorTask(void *pv){
 		data = uxSemaphoreGetCount( semaphore_PWMActive );
 		if (data == 0) {
 			printf("Waiting for Semaphore\n");
-			vTaskDelay(pdMS_TO_TICKS(200));
+			vTaskDelay(pdMS_TO_TICKS(500));
 
 		}
 		else if (data == 1) {
