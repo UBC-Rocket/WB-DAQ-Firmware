@@ -201,19 +201,11 @@ int main(void) {
     for(;;);
 }
 
-/*******************************************************************************
- * Tasks
- ****************************************tr**************************************/
-static void blinkTask(void *pv) {
-	while(1) {
-
-		vTaskDelay(pdMS_TO_TICKS(500));
-//		printf("BLINK");
-	}
-}
 
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// Main Tasks:
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
 
 // Initialize Semaphores:
 SemaphoreHandle_t semaphore_Message;
@@ -222,7 +214,7 @@ SemaphoreHandle_t semaphore_PWMActive;
 // Create Message Type that takes specific values using Enumerate:
 enum messageEnum
     {
-        DPR_Pause, DPR_Resume
+        No_Command, DPR_Pause, DPR_Resume
     };
 typedef enum messageEnum messageType;
 messageType message;
@@ -253,14 +245,16 @@ static void mainTask(void *pv){
 		// Feature Setting Logic:
 		if (message == DPR_Pause){
 			xSemaphoreTake( semaphore_PWMActive, 10 );
+			printf("Command Executed: DPR_Pause.\n");
 		}
 		else if(message == DPR_Resume){
 			xSemaphoreGive(semaphore_PWMActive);
+			printf("Command Executed: DPR_Resume.\n");
 		}
 		else {
 			//pass;
 		}
-
+		message = No_Command;
 		xSemaphoreGive(semaphore_Message);
 	}
 
@@ -305,26 +299,27 @@ static void RTTreceive(void *pv) {
 
 
 
+/*******************************************************************************
+ * Tasks
+ ******************************************************************************/
+static void blinkTask(void *pv) {
+	while(1) {
 
+		vTaskDelay(pdMS_TO_TICKS(500));
+//		printf("BLINK");
+	}
+}
 
 
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
-	UBaseType_t data;
 	for(;;){
-		data = uxSemaphoreGetCount( semaphore_PWMActive );
-		if (data == 0) {
-			printf("Waiting for Semaphore\n");
-			vTaskDelay(pdMS_TO_TICKS(500));
-
-		}
-		else if (data == 1) {
+		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
 			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
-			//printf("Hello\n");
 		}
-		else
-		{
-			printf("god knows what's wrong\n");
+		else if(uxSemaphoreGetCount( semaphore_PWMActive ) == 0){
+			printf("Waiting for Semaphore\n");
+			vTaskDelay(pdMS_TO_TICKS(1000));
 		}
 	}
 }
