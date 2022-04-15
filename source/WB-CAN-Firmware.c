@@ -95,7 +95,7 @@ enum testConfigEnum
     };
 typedef enum testConfigEnum testConfigType;
 
-testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
+testConfigType testConfig = KULITE; // Swap this to Kulite or Potentiometer.
 float pressureScaling = 3.3;
 
 
@@ -476,12 +476,18 @@ void PWM(uint32_t period, uint32_t duty){
 	float t1 = period * (100 - duty)/100;
 	float t2 = period * (duty)/100;
 
-	// Turn off:
-	GPIO_PortClear(valvePin, valvePinMask);
-	vTaskDelay(pdMS_TO_TICKS(t1));
+
 	// Turn on:
 	GPIO_PortSet(valvePin, valvePinMask);
 	vTaskDelay(pdMS_TO_TICKS(t2));
+
+	// Turn off:
+	GPIO_PortClear(valvePin, valvePinMask);
+	vTaskDelay(pdMS_TO_TICKS(t1));
+
+
+
+
 }
 
 
