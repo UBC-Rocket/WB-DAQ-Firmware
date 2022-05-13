@@ -112,7 +112,7 @@ float pressureScaling = 3.3;
 int main(void) {
 
     /* Init board hardware. */
- 	BOARD_InitPins();
+   	BOARD_InitPins();
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
@@ -360,7 +360,7 @@ static void ControlTask(void *pv) {
 	uint32_t mode = 1;
 
 
-
+	static char data_out[80];
 	float error, desired_val, kp;
 
 	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct); // Reads in Voltage
@@ -377,7 +377,7 @@ static void ControlTask(void *pv) {
 
 	if(testConfig == KULITE){
 		// Reading from the Sensor
-		desired_val = 1.700; // In ATM
+		desired_val = 10.0; // In ATM
 		kp = 150.0;
 		sensor = sensor * pressureScaling; // To convert Volts to ATM
 	}
@@ -396,6 +396,10 @@ static void ControlTask(void *pv) {
 		vTaskDelay(pdMS_TO_TICKS(sample_time*1000)); // Delay in milliseconds
 		sensor_old = sensor;
 		sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+
+
+		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
+		SEGGER_RTT_WriteString(0, data_out);
 
 		error = desired_val - (sensor);
 		out = (int) (kp * error);
@@ -452,9 +456,7 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 	//PRINTF("Duty: %d\t", duty_cycle);
 	//PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 
-	static char data_out[80];
-	sprintf(data_out, "%f[V],\t\t%d[%]\r", adcValue, duty_cycle);
-	SEGGER_RTT_WriteString(0, data_out);
+
 
 	return adcValue;
 }
@@ -476,12 +478,18 @@ void PWM(uint32_t period, uint32_t duty){
 	float t1 = period * (100 - duty)/100;
 	float t2 = period * (duty)/100;
 
-	// Turn off:
-	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
-	vTaskDelay(pdMS_TO_TICKS(t1));
+
 	// Turn on:
 	GPIO_PortSet(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t2));
+
+	// Turn off:
+	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
+	vTaskDelay(pdMS_TO_TICKS(t1));
+
+
+
+
 }
 
 
