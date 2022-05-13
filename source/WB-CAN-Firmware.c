@@ -80,8 +80,8 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
-#define valvePin BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
-#define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
+#define VALVE_PIN BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
+#define VALVE_PIN_MASK BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
 
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
@@ -354,7 +354,7 @@ static void ControlTask(void *pv) {
 
 	// Set Pin to ON State
 	//GPIO_PortSet(valvePin, valvePinMask);
-	GPIO_PortClear(valvePin, valvePinMask);
+	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
 	// PID Loop:
 	// Mode: P = 1, PI = 2
 	uint32_t mode = 1;
@@ -477,10 +477,10 @@ void PWM(uint32_t period, uint32_t duty){
 	float t2 = period * (duty)/100;
 
 	// Turn off:
-	GPIO_PortClear(valvePin, valvePinMask);
+	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t1));
 	// Turn on:
-	GPIO_PortSet(valvePin, valvePinMask);
+	GPIO_PortSet(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t2));
 }
 
