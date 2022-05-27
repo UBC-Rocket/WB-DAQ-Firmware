@@ -87,11 +87,11 @@ uint32_t duty_cycle = 10;
 uint8_t pwm_active = 0;
 
 
-enum testConfigEnum
+typedef enum testConfigEnum
     {
-        POTENTIOMETER, KULITE
-    };
-typedef enum testConfigEnum testConfigType;
+        POTENTIOMETER, 
+        KULITE
+    } testConfigType;
 
 testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
 float pressureScaling = 3.3;
@@ -203,11 +203,11 @@ SemaphoreHandle_t semaphore_Message;
 SemaphoreHandle_t semaphore_PWMActive;
 
 // Create Message Type that takes specific values using Enumerate:
-enum messageEnum
-    {
-        No_Command, DPR_Pause, DPR_Resume
-    };
-typedef enum messageEnum messageType;
+typedef enum {
+        No_Command,
+        DPR_Pause,
+        DPR_Resume
+    } message_t;
 messageType message;
 
 /*
@@ -234,16 +234,15 @@ static void mainTask(void *pv){
 		xSemaphoreTake(semaphore_Message, 10);
 
 		// Feature Setting Logic:
-		if (message == DPR_Pause){
-			xSemaphoreTake( semaphore_PWMActive, 10 );
-			printf("Command Executed: DPR_Pause.\n");
-		}
-		else if(message == DPR_Resume){
-			xSemaphoreGive(semaphore_PWMActive);
-			printf("Command Executed: DPR_Resume.\n");
-		}
-		else {
-			//pass;
+		switch(message){
+			case DPR_Pause:
+				xSemaphoreTake( semaphore_PWMActive, 10 );
+				printf("Command Executed: DPR_Pause.\n");
+				break;
+			case DPR_Resume:
+				xSemaphoreGive(semaphore_PWMActive);
+				printf("Command Executed: DPR_Resume.\n");
+				break;
 		}
 		message = No_Command;
 		xSemaphoreGive(semaphore_Message);
