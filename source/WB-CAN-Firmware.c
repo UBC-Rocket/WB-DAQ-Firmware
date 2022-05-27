@@ -51,7 +51,7 @@ static void testTask(void *pv);
 static void actuatorTask(void *pv);
 static void ControlTask(void *pv);
 static void tcTask(void *pv);
-static void RTTreceive(void *pv);
+static void rttReceive(void *pv);
 
 // ADC Interrupt:
 void ADC16_IRQ_HANDLER_FUNC(void);
@@ -85,6 +85,16 @@ void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
 
 uint8_t pwm_active = 0;
+
+
+// DPR Constants
+#define PI_MAX 5
+#define PI_MIN 0
+
+#define DUTYCYCLE_MAX 100
+#define DUTYCYCLE_MIN 0
+
+
 
 
 typedef enum testConfigEnum
@@ -143,7 +153,7 @@ int main(void) {
 				;
     };
 
-    if ((error =  xTaskCreate(RTTreceive,
+    if ((error =  xTaskCreate(rttReceive,
     		"RTT Receive Task",
     		512,
     		NULL,
@@ -208,7 +218,7 @@ typedef enum {
         DPR_Pause,
         DPR_Resume
     } message_t;
-messageType message;
+message_t message;
 
 /*
 // Description:	This task reads the current message and sets the program to different settings.
@@ -243,6 +253,8 @@ static void mainTask(void *pv){
 				xSemaphoreGive(semaphore_PWMActive);
 				printf("Command Executed: DPR_Resume.\n");
 				break;
+			case No_Command:
+				break;
 		}
 		message = No_Command;
 		xSemaphoreGive(semaphore_Message);
@@ -252,7 +264,7 @@ static void mainTask(void *pv){
 
 
 // Task that is constantly waiting for RTT
-static void RTTreceive(void *pv) {
+static void rttReceive(void *pv) {
 	char buffer[BUFFER_SIZE];
 	unsigned int i = 0;
 	while(1) {
@@ -319,6 +331,13 @@ static void ControlTask(void *pv) {
 	adc16_config_t adc16ConfigStruct;
 	adc16_channel_config_t adc16ChannelConfigStruct;
 
+	// Create Message Type that takes specific values using Enumerate:
+	typedef enum {
+	        P,
+	        PI,
+	        PID
+	    } pidMode_t;
+	pidMode_t pidMode = P;
 
 	BOARD_InitPins();
 	BOARD_BootClockRUN();
@@ -345,9 +364,6 @@ static void ControlTask(void *pv) {
 	// Set Pin to ON State
 	//GPIO_PortSet(valvePin, valvePinMask);
 	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
-	// PID Loop:
-	// Mode: P = 1, PI = 2
-	uint32_t mode = 1;
 
 
 	static char data_out[80];
@@ -365,21 +381,24 @@ static void ControlTask(void *pv) {
 
 	int duty_offset = 50;
 
-	if(testConfig == KULITE){
-		// Reading from the Sensor
-		desired_val = 10.0; // In ATM
-		kp = 150.0;
-		sensor = sensor * pressureScaling; // To convert Volts to ATM
+	switch(testConfig){
+		case KULITE:
+			// Reading from the Sensor
+			desired_val = 10.0; // In ATM
+			kp = 150.0;
+			sensor = sensor * pressureScaling; // To convert Volts to ATM
+			break;
+		case POTENTIOMETER:
+			// Reading from Potentiometer:
+			desired_val = 1.5;
+			kp = 1;//50;
+			break;
+		default:
+			PRINTF("NO CONFIG SETUP");
+			for(;;);
+			break;
 	}
-	else if (testConfig == POTENTIOMETER){
-		// Reading from Potentiometer:
-		desired_val = 1.5;
-		kp = 1;//50;
-	}
-	else {
-		PRINTF("NO CONFIG SETUP");
-		for(;;);
-	}
+
 
 	while (1)
 	{
@@ -394,18 +413,35 @@ static void ControlTask(void *pv) {
 		error = desired_val - (sensor);
 		out = (int) (kp * error);
 
-
-		if (mode == 2){ // PI Controller: Have not Tested
-			integral = sample_time * (sensor - sensor_old);
-			if (integral >= 5) integral = 5;			// Limit the Integral from accumulating
-			if (integral <= 0) integral = 0;
-			duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
-		}
-
-		if (mode == 1){ // P Controller with limited DutyCycle:
-			if (duty_offset + out > 100) 	duty_cycle = 100;
-			else if(duty_offset + out < 0)  duty_cycle = 0;
-			else duty_cycle = duty_offset + out;
+		switch(pidMode){
+			case PI:
+				integral = sample_time * (sensor - sensor_old);
+				// Limit the Integral from accumulating
+				if (integral >= PI_MAX) {
+					integral = PI_MAX;
+				}
+				else if (integral <= PI_MIN) {
+					integral = PI_MIN;
+				}
+				else {
+					duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
+				}
+				break;
+			case P:
+				if (duty_offset + out > DUTYCYCLE_MAX) {
+					duty_cycle = DUTYCYCLE_MAX;
+				}
+				else if(duty_offset + out < DUTYCYCLE_MIN)  {
+					duty_cycle = DUTYCYCLE_MIN;
+				}
+				else {
+					duty_cycle = duty_offset + out;
+				}
+				break;
+			default:
+				printf("Control Task Error: Unknown Control Mode.");
+				for(;;)
+				break;
 		}
 	}
 }
