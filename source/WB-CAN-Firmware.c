@@ -41,18 +41,16 @@
 #define TC_I2C3_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
 #define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
-#define BUFFERSIZE 10
+#define BUFFER_SIZE 10
 /*******************************************************************************
  * Task Prototypes
  ******************************************************************************/
 static void mainTask(void *pv);
-
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
 static void ControlTask(void *pv);
 static void tcTask(void *pv);
-
 static void RTTreceive(void *pv);
 
 // ADC Interrupt:
@@ -97,13 +95,6 @@ typedef enum testConfigEnum testConfigType;
 
 testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
 float pressureScaling = 3.3;
-
-
-
-
-
-
-
 
 /*******************************************************************************
  * Main
@@ -314,10 +305,10 @@ static void blinkTask(void *pv) {
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
 	for(;;){
-		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
+		if (uxSemaphoreGetCount(semaphore_PWMActive )) {
 			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
 		}
-		else if(uxSemaphoreGetCount( semaphore_PWMActive ) == 0){
+		else {
 			printf("Waiting for Semaphore\n");
 			vTaskDelay(pdMS_TO_TICKS(1000));
 		}
