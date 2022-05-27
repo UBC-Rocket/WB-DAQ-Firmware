@@ -254,13 +254,13 @@ static void mainTask(void *pv){
 
 // Task that is constantly waiting for RTT
 static void RTTreceive(void *pv) {
-	char buffer[BUFFERSIZE];
+	char buffer[BUFFER_SIZE];
 	unsigned int i = 0;
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
 
-		i = SEGGER_RTT_Read(0, buffer, BUFFERSIZE);
+		i = SEGGER_RTT_Read(0, buffer, BUFFER_SIZE);
 		buffer[i]= '\0';
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
