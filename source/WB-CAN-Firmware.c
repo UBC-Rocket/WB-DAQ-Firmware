@@ -5,7 +5,8 @@
 /*******************************************************************************
  * Includes
  ******************************************************************************/
-
+/// Need to put it back into the source folder
+#include "adc.h"
 #include <stdio.h>
 #include "board.h"
 #include "peripherals.h"
@@ -19,11 +20,13 @@
 #include "fsl_dspi.h"
 #include "fsl_dspi_freertos.h"
 #include "fsl_gpio.h"
-#include "fsl_adc16.h"
+
 #include "fsl_i2c.h"
 #include "fsl_i2c_freertos.h"
 
 #include "SEGGER_RTT.h"
+
+
 
 
 /*******************************************************************************
@@ -41,43 +44,19 @@
 #define TC_I2C3_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
 #define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
-#define BUFFERSIZE 10
+#define BUFFER_SIZE 10
 /*******************************************************************************
  * Task Prototypes
  ******************************************************************************/
 static void mainTask(void *pv);
 
 static void blinkTask(void *pv);
-static void testTask(void *pv);
+
 static void actuatorTask(void *pv);
 static void ControlTask(void *pv);
 static void tcTask(void *pv);
 
 static void RTTreceive(void *pv);
-
-// ADC Interrupt:
-void ADC16_IRQ_HANDLER_FUNC(void);
-
-
-/*******************************************************************************
- * ADC Prototypes and Interrupt Variables
- ******************************************************************************/
-void adcSetup(adc16_config_t, adc16_channel_config_t);
-float adcRead(adc16_config_t, adc16_channel_config_t);
-void ADC16_IRQ_HANDLER_FUNC(void);
-
-volatile bool g_Adc16ConversionDoneFlag = false;
-volatile uint32_t g_Adc16ConversionValue;
-volatile uint32_t g_Adc16InterruptCounter;
-const uint32_t g_Adc16_12bitFullRange = 4096U;
-
-#define ADC16_BASE          ADC0
-#define ADC16_CHANNEL_GROUP 0U
-// This sets what ADC Signal you are using:
-#define ADC16_USER_CHANNEL  18U
-
-#define ADC16_IRQn             ADC0_IRQn
-#define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
 #define VALVE_PIN BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
@@ -263,13 +242,13 @@ static void mainTask(void *pv){
 
 // Task that is constantly waiting for RTT
 static void RTTreceive(void *pv) {
-	char buffer[BUFFERSIZE];
+	char buffer[BUFFER_SIZE];
 	unsigned int i = 0;
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
 
-		i = SEGGER_RTT_Read(0, buffer, BUFFERSIZE);
+		i = SEGGER_RTT_Read(0, buffer, BUFFER_SIZE);
 		buffer[i]= '\0';
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
@@ -289,7 +268,6 @@ static void RTTreceive(void *pv) {
 		else{
 			//pass
 		}
-
 	}
 }
 
@@ -311,46 +289,15 @@ static void blinkTask(void *pv) {
 }
 
 
-static void actuatorTask(void *pv){
-	uint32_t period = 100;
-	for(;;){
-		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
-			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
-		}
-		else if(uxSemaphoreGetCount( semaphore_PWMActive ) == 0){
-			printf("Waiting for Semaphore\n");
-			vTaskDelay(pdMS_TO_TICKS(1000));
-		}
-	}
-}
-
 
 static void ControlTask(void *pv) {
-	adc16_config_t adc16ConfigStruct;
-	adc16_channel_config_t adc16ChannelConfigStruct;
-
 
 	BOARD_InitPins();
 	BOARD_BootClockRUN();
 	BOARD_InitDebugConsole();
 	EnableIRQ(ADC16_IRQn);
 
-	// Configure ADC:
-	ADC16_GetDefaultConfig(&adc16ConfigStruct);
-	adc16ChannelConfigStruct.channelNumber                        = ADC16_USER_CHANNEL;
-	adc16ChannelConfigStruct.enableInterruptOnConversionCompleted = true; /* Enable the interrupt. */
-
-	// Calibration for Positive/Negative (refer to SDK-Example)
-	if (kStatus_Success == ADC16_DoAutoCalibration(ADC16_BASE))
-	{
-		PRINTF("ADC16_DoAutoCalibration() Done.\r\n");
-	}
-	else
-	{
-		PRINTF("ADC16_DoAutoCalibration() Failed.\r\n");
-	}
-
-	g_Adc16InterruptCounter = 0U;
+	configureADC();
 
 	// Set Pin to ON State
 	//GPIO_PortSet(valvePin, valvePinMask);
@@ -363,7 +310,7 @@ static void ControlTask(void *pv) {
 	static char data_out[80];
 	float error, desired_val, kp;
 
-	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct); // Reads in Voltage
+	float sensor = adcRead(); // Reads in Voltage
 
 	float out;
 	// Integral Components:
@@ -395,7 +342,7 @@ static void ControlTask(void *pv) {
 	{
 		vTaskDelay(pdMS_TO_TICKS(sample_time*1000)); // Delay in milliseconds
 		sensor_old = sensor;
-		sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+		sensor = adcRead();
 
 
 		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
@@ -420,46 +367,21 @@ static void ControlTask(void *pv) {
 	}
 }
 
-void ADC16_IRQ_HANDLER_FUNC(void)
-{
-    g_Adc16ConversionDoneFlag = true;
-    /* Read conversion result to clear the conversion completed flag. */
-    g_Adc16ConversionValue = ADC16_GetChannelConversionValue(ADC16_BASE, ADC16_CHANNEL_GROUP);
-    g_Adc16InterruptCounter++;
-    SDK_ISR_EXIT_BARRIER;
+
+
+static void actuatorTask(void *pv){
+	uint32_t period = 100;
+	for(;;){
+		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
+			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
+		}
+		else if(uxSemaphoreGetCount( semaphore_PWMActive ) == 0){
+			printf("Waiting for Semaphore\n");
+			vTaskDelay(pdMS_TO_TICKS(1000));
+		}
+	}
 }
 
-
-//  Function: adcRead
-//	Purpose: Uses the On-Chip ADC to read voltage
-//	Outputs Voltage Reading
-float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
-	float adcValue;
-
-
-	g_Adc16ConversionDoneFlag = false;
-	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
-	while (!g_Adc16ConversionDoneFlag)
-	{
-	}
-	adcValue = (float) g_Adc16ConversionValue;
-	if (adcValue > 4100U)
-	{
-		adcValue = 0; //65536U - adcValue;
-	}
-
-	// Maps reading to Voltage
-	adcValue = adcValue / 4096.0 * 3.3  ;
-
-	//PRINTF("ADC Value: %f[V]\t", adcValue)
-	//PRINTF("ADC Value: %f[V]\t ADC Value: %f[ATM]\t", adcValue, adcValue*pressureScaling);
-	//PRINTF("Duty: %d\t", duty_cycle);
-	//PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
-
-
-
-	return adcValue;
-}
 
 // PWM
 //	- Duty cycle uint32 between 0 and 100
@@ -486,12 +408,7 @@ void PWM(uint32_t period, uint32_t duty){
 	// Turn off:
 	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t1));
-
-
-
-
 }
-
 
 
 
