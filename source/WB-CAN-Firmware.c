@@ -41,14 +41,17 @@
 #define TC_I2C3_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
 #define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
+#define BUFFER_SIZE 10
 /*******************************************************************************
  * Task Prototypes
  ******************************************************************************/
+static void mainTask(void *pv);
 static void blinkTask(void *pv);
 static void testTask(void *pv);
 static void actuatorTask(void *pv);
 static void ControlTask(void *pv);
 static void tcTask(void *pv);
+static void rttReceive(void *pv);
 
 // ADC Interrupt:
 void ADC16_IRQ_HANDLER_FUNC(void);
@@ -75,11 +78,33 @@ const uint32_t g_Adc16_12bitFullRange = 4096U;
 #define ADC16_IRQ_HANDLER_FUNC ADC0_IRQHandler
 
 
-#define valvePin BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
-#define valvePinMask BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
+#define VALVE_PIN BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
+#define VALVE_PIN_MASK BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
 
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
+
+uint8_t pwm_active = 0;
+
+
+// DPR Constants
+#define PI_MAX 5
+#define PI_MIN 0
+
+#define DUTYCYCLE_MAX 100
+#define DUTYCYCLE_MIN 0
+
+
+
+
+typedef enum testConfigEnum
+    {
+        POTENTIOMETER, 
+        KULITE
+    } testConfigType;
+
+testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
+float pressureScaling = 3.3;
 
 /*******************************************************************************
  * Main
@@ -88,7 +113,7 @@ uint32_t duty_cycle = 10;
 int main(void) {
 
     /* Init board hardware. */
- 	BOARD_InitPins();
+   	BOARD_InitPins();
     BOARD_InitBootPins();
     BOARD_InitBootClocks();
     BOARD_InitBootPeripherals();
@@ -117,8 +142,8 @@ int main(void) {
     };
 
 
-    if ((error =  xTaskCreate(testTask,
-		"Test Debugging Task",
+    if ((error =  xTaskCreate(mainTask,
+		"Main Task",
 		512,
 		NULL,
 		0,
@@ -127,6 +152,17 @@ int main(void) {
 			for (;;)
 				;
     };
+
+    if ((error =  xTaskCreate(rttReceive,
+    		"RTT Receive Task",
+    		512,
+    		NULL,
+    		0,
+    		NULL)) != pdPASS) {
+    			printf("Task init failed: %ld\n", error);
+    			for (;;)
+    				;
+        };
 
     if ((error =  xTaskCreate(actuatorTask,
 		"Actuator Task",
@@ -166,6 +202,105 @@ int main(void) {
     for(;;);
 }
 
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// Main Tasks:
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+// Initialize Semaphores:
+SemaphoreHandle_t semaphore_Message;
+SemaphoreHandle_t semaphore_PWMActive;
+
+// Create Message Type that takes specific values using Enumerate:
+typedef enum {
+        No_Command,
+        DPR_Pause,
+        DPR_Resume
+    } message_t;
+message_t message;
+
+/*
+// Description:	This task reads the current message and sets the program to different settings.
+// Note:		This is not a queue and any message written twice before being acted on is overwritten.
+//				Future Revision will likely be a queue.
+*/
+static void mainTask(void *pv){
+
+	// Create Semaphores:
+    semaphore_Message = xSemaphoreCreateBinary();
+    semaphore_PWMActive = xSemaphoreCreateBinary();
+
+
+    // Forever Loop:
+	for(;;){
+		vTaskDelay(pdMS_TO_TICKS(200));
+
+		// Wait for message
+		while(uxSemaphoreGetCount(semaphore_Message) == 0){
+		};
+
+		// Semaphore is Available, so now we can take it and read the message:
+		xSemaphoreTake(semaphore_Message, 10);
+
+		// Feature Setting Logic:
+		switch(message){
+			case DPR_Pause:
+				xSemaphoreTake( semaphore_PWMActive, 10 );
+				printf("Command Executed: DPR_Pause.\n");
+				break;
+			case DPR_Resume:
+				xSemaphoreGive(semaphore_PWMActive);
+				printf("Command Executed: DPR_Resume.\n");
+				break;
+			case No_Command:
+				break;
+		}
+		message = No_Command;
+		xSemaphoreGive(semaphore_Message);
+	}
+
+}
+
+
+// Task that is constantly waiting for RTT
+static void rttReceive(void *pv) {
+	char buffer[BUFFER_SIZE];
+	unsigned int i = 0;
+	while(1) {
+		vTaskDelay(pdMS_TO_TICKS(200));
+		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
+
+		i = SEGGER_RTT_Read(0, buffer, BUFFER_SIZE);
+		buffer[i]= '\0';
+		if(i != 0){
+			if( strcmp(buffer, "p") == 0){
+				xSemaphoreTake(semaphore_Message, 10);
+				message = DPR_Pause;
+				xSemaphoreGive(semaphore_Message);
+				SEGGER_RTT_WriteString(0, "Success: Received DPR_Pause Command./n");
+			}
+			if( strcmp(buffer, "o") == 0){
+				xSemaphoreTake(semaphore_Message, 10);
+				message = DPR_Resume;
+				xSemaphoreGive(semaphore_Message);
+				SEGGER_RTT_WriteString(0, "Success: Received DPR_Resume Command./n");
+			}
+			printf("%s\n", buffer);
+		}
+		else{
+			//pass
+		}
+
+	}
+}
+
+
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+
+
 /*******************************************************************************
  * Tasks
  ******************************************************************************/
@@ -177,29 +312,17 @@ static void blinkTask(void *pv) {
 	}
 }
 
-static void testTask(void *pv) {
-	char hello[10];
-	unsigned int i = 0;
-	while(1) {
-		vTaskDelay(pdMS_TO_TICKS(200));
-		SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
-
-		i = SEGGER_RTT_Read(0, hello, 10);
-		hello[i]= '\0';
-		if(i != 0){
-			printf("%s\n", hello);
-		}
-		else{
-			//pass
-		}
-
-	}
-}
 
 static void actuatorTask(void *pv){
 	uint32_t period = 100;
 	for(;;){
-		PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
+		if (uxSemaphoreGetCount(semaphore_PWMActive )) {
+			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
+		}
+		else {
+			printf("Waiting for Semaphore\n");
+			vTaskDelay(pdMS_TO_TICKS(1000));
+		}
 	}
 }
 
@@ -208,6 +331,13 @@ static void ControlTask(void *pv) {
 	adc16_config_t adc16ConfigStruct;
 	adc16_channel_config_t adc16ChannelConfigStruct;
 
+	// Create Message Type that takes specific values using Enumerate:
+	typedef enum {
+	        P,
+	        PI,
+	        PID
+	    } pidMode_t;
+	pidMode_t pidMode = P;
 
 	BOARD_InitPins();
 	BOARD_BootClockRUN();
@@ -233,17 +363,14 @@ static void ControlTask(void *pv) {
 
 	// Set Pin to ON State
 	//GPIO_PortSet(valvePin, valvePinMask);
-	GPIO_PortClear(valvePin, valvePinMask);
-	// PID Loop:
-	// Mode: P = 1, PI = 2
-	uint32_t mode = 1;
-	// Reading from Potentiometer:
-	float desired_val = 1.700; // In ATM
-	// Reading from Sensor:
-	//float desired_val = 20;
+	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
 
-	float error;
-	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
+
+	static char data_out[80];
+	float error, desired_val, kp;
+
+	float sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct); // Reads in Voltage
+
 	float out;
 	// Integral Components:
 	float sensor_old;
@@ -251,8 +378,27 @@ static void ControlTask(void *pv) {
 	float sample_time = 0.5;
 
 	float ki = 0.1;
-	float kp = 150.0;
+
 	int duty_offset = 50;
+
+	switch(testConfig){
+		case KULITE:
+			// Reading from the Sensor
+			desired_val = 10.0; // In ATM
+			kp = 150.0;
+			sensor = sensor * pressureScaling; // To convert Volts to ATM
+			break;
+		case POTENTIOMETER:
+			// Reading from Potentiometer:
+			desired_val = 1.5;
+			kp = 1;//50;
+			break;
+		default:
+			PRINTF("NO CONFIG SETUP");
+			for(;;);
+			break;
+	}
+
 
 	while (1)
 	{
@@ -260,21 +406,42 @@ static void ControlTask(void *pv) {
 		sensor_old = sensor;
 		sensor = adcRead(adc16ConfigStruct, adc16ChannelConfigStruct);
 
+
+		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
+		SEGGER_RTT_WriteString(0, data_out);
+
 		error = desired_val - (sensor);
 		out = (int) (kp * error);
 
-
-		if (mode == 2){ // PI Controller:
-			integral = sample_time * (sensor - sensor_old);
-			if (integral >= 5) integral = 5;			// Limit the Integral from accumulating
-			if (integral <= 0) integral = 0;
-			duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
-		}
-
-		if (mode == 1){ // P Controller with limited DutyCycle:
-			if (duty_offset + out > 100) 	duty_cycle = 100;
-			else if(duty_offset + out < 0)  duty_cycle = 0;
-			else duty_cycle = duty_offset + out;
+		switch(pidMode){
+			case PI:
+				integral = sample_time * (sensor - sensor_old);
+				// Limit the Integral from accumulating
+				if (integral >= PI_MAX) {
+					integral = PI_MAX;
+				}
+				else if (integral <= PI_MIN) {
+					integral = PI_MIN;
+				}
+				else {
+					duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
+				}
+				break;
+			case P:
+				if (duty_offset + out > DUTYCYCLE_MAX) {
+					duty_cycle = DUTYCYCLE_MAX;
+				}
+				else if(duty_offset + out < DUTYCYCLE_MIN)  {
+					duty_cycle = DUTYCYCLE_MIN;
+				}
+				else {
+					duty_cycle = duty_offset + out;
+				}
+				break;
+			default:
+				printf("Control Task Error: Unknown Control Mode.");
+				for(;;)
+				break;
 		}
 	}
 }
@@ -288,10 +455,13 @@ void ADC16_IRQ_HANDLER_FUNC(void)
     SDK_ISR_EXIT_BARRIER;
 }
 
+
+//  Function: adcRead
+//	Purpose: Uses the On-Chip ADC to read voltage
+//	Outputs Voltage Reading
 float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16ChannelConfigStruct){
 	float adcValue;
-	float adcValueVolts;
-	float adcValueATM;
+
 
 	g_Adc16ConversionDoneFlag = false;
 	ADC16_SetChannelConfig(ADC16_BASE, ADC16_CHANNEL_GROUP, &adc16ChannelConfigStruct);
@@ -304,21 +474,17 @@ float adcRead(adc16_config_t adc16ConfigStruct, adc16_channel_config_t adc16Chan
 		adcValue = 0; //65536U - adcValue;
 	}
 
-
-	// Duty Cycle from 0-100 Used for Potentiometer Setup:
-	//adcValue = adcValue / 4096.0 * 100.0; // Reads in Percentage
-	adcValue = adcValue / 4096.0 * 3.3  ; // Reads in Voltage
-
-	// When Reading from Pressure Sensor -  Double check this conversion
-	adcValueATM = adcValue * 3.30;
+	// Maps reading to Voltage
+	adcValue = adcValue / 4096.0 * 3.3  ;
 
 	//PRINTF("ADC Value: %f[V]\t", adcValue)
-	//PRINTF("ADC Value: %f[ATM]\t", adcValueATM);
+	//PRINTF("ADC Value: %f[V]\t ADC Value: %f[ATM]\t", adcValue, adcValue*pressureScaling);
 	//PRINTF("Duty: %d\t", duty_cycle);
-	//PRINTF("ADC Value: %d\t", (int)(adcValue / 4096.0 * 3300 * 1000 / 330));
 	//PRINTF("ADC Interrupt Count: %d\r", g_Adc16InterruptCounter);
 
-	return adcValueATM;
+
+
+	return adcValue;
 }
 
 // PWM
@@ -338,12 +504,18 @@ void PWM(uint32_t period, uint32_t duty){
 	float t1 = period * (100 - duty)/100;
 	float t2 = period * (duty)/100;
 
-	// Turn off:
-	GPIO_PortClear(valvePin, valvePinMask);
-	vTaskDelay(pdMS_TO_TICKS(t1));
+
 	// Turn on:
-	GPIO_PortSet(valvePin, valvePinMask);
+	GPIO_PortSet(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t2));
+
+	// Turn off:
+	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
+	vTaskDelay(pdMS_TO_TICKS(t1));
+
+
+
+
 }
 
 
