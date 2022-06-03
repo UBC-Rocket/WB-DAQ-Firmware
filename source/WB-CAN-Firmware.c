@@ -49,12 +49,12 @@
  * Task Prototypes
  ******************************************************************************/
 static void mainTask(void *pv);
-
 static void blinkTask(void *pv);
 
 static void actuatorTask(void *pv);
 static void ControlTask(void *pv);
 static void tcTask(void *pv);
+static void rttReceive(void *pv);
 
 static void RTTreceive(void *pv);
 
@@ -81,8 +81,30 @@ float pressureScaling = 3.3;
 
 
 
+#define VALVE_PIN BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
+#define VALVE_PIN_MASK BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
+
+uint8_t pwm_active = 0;
 
 
+// DPR Constants
+#define PI_MAX 5
+#define PI_MIN 0
+
+#define DUTYCYCLE_MAX 100
+#define DUTYCYCLE_MIN 0
+
+
+
+
+typedef enum testConfigEnum
+    {
+        POTENTIOMETER, 
+        KULITE
+    } testConfigType;
+
+testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
+float pressureScaling = 3.3;
 
 /*******************************************************************************
  * Main
@@ -131,7 +153,8 @@ int main(void) {
 				;
     };
 
-    if ((error =  xTaskCreate(RTTreceive,
+
+    if ((error =  xTaskCreate(rttReceive,
     		"RTT Receive Task",
     		512,
     		NULL,
@@ -191,12 +214,13 @@ SemaphoreHandle_t semaphore_Message;
 SemaphoreHandle_t semaphore_PWMActive;
 
 // Create Message Type that takes specific values using Enumerate:
-enum messageEnum
-    {
-        No_Command, DPR_Pause, DPR_Resume
-    };
-typedef enum messageEnum messageType;
-messageType message;
+
+typedef enum {
+        No_Command,
+        DPR_Pause,
+        DPR_Resume
+    } message_t;
+message_t message;
 
 /*
 // Description:	This task reads the current message and sets the program to different settings.
@@ -222,16 +246,17 @@ static void mainTask(void *pv){
 		xSemaphoreTake(semaphore_Message, 10);
 
 		// Feature Setting Logic:
-		if (message == DPR_Pause){
-			xSemaphoreTake( semaphore_PWMActive, 10 );
-			printf("Command Executed: DPR_Pause.\n");
-		}
-		else if(message == DPR_Resume){
-			xSemaphoreGive(semaphore_PWMActive);
-			printf("Command Executed: DPR_Resume.\n");
-		}
-		else {
-			//pass;
+		switch(message){
+			case DPR_Pause:
+				xSemaphoreTake( semaphore_PWMActive, 10 );
+				printf("Command Executed: DPR_Pause.\n");
+				break;
+			case DPR_Resume:
+				xSemaphoreGive(semaphore_PWMActive);
+				printf("Command Executed: DPR_Resume.\n");
+				break;
+			case No_Command:
+				break;
 		}
 		message = No_Command;
 		xSemaphoreGive(semaphore_Message);
@@ -241,7 +266,7 @@ static void mainTask(void *pv){
 
 
 // Task that is constantly waiting for RTT
-static void RTTreceive(void *pv) {
+static void rttReceive(void *pv) {
 	char buffer[BUFFER_SIZE];
 	unsigned int i = 0;
 	while(1) {
@@ -288,9 +313,30 @@ static void blinkTask(void *pv) {
 	}
 }
 
+static void actuatorTask(void *pv){
+	uint32_t period = 100;
+	for(;;){
+		if (uxSemaphoreGetCount(semaphore_PWMActive )) {
+			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
+		}
+		else {
+			printf("Waiting for Semaphore\n");
+			vTaskDelay(pdMS_TO_TICKS(1000));
+		}
+	}
+}
+
+
 
 
 static void ControlTask(void *pv) {
+	// Create Message Type that takes specific values using Enumerate:
+	typedef enum {
+	        P,
+	        PI,
+	        PID
+	    } pidMode_t;
+	pidMode_t pidMode = P;
 
 	BOARD_InitPins();
 	BOARD_BootClockRUN();
@@ -302,9 +348,6 @@ static void ControlTask(void *pv) {
 	// Set Pin to ON State
 	//GPIO_PortSet(valvePin, valvePinMask);
 	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
-	// PID Loop:
-	// Mode: P = 1, PI = 2
-	uint32_t mode = 1;
 
 
 	static char data_out[80];
@@ -322,22 +365,24 @@ static void ControlTask(void *pv) {
 
 	int duty_offset = 50;
 
-	if(testConfig == KULITE){
-		// Reading from the Sensor
-		desired_val = 10.0; // In ATM
-		kp = 150.0;
-		sensor = sensor * pressureScaling; // To convert Volts to ATM
+	switch(testConfig){
+		case KULITE:
+			// Reading from the Sensor
+			desired_val = 10.0; // In ATM
+			kp = 150.0;
+			sensor = sensor * pressureScaling; // To convert Volts to ATM
+			break;
+		case POTENTIOMETER:
+			// Reading from Potentiometer:
+			desired_val = 1.5;
+			kp = 1;//50;
+			break;
+		default:
+			PRINTF("NO CONFIG SETUP");
+			for(;;);
+			break;
 	}
-	else if (testConfig == POTENTIOMETER){
-		// Reading from Potentiometer:
-		desired_val = 1.5;
-		kp = 1;//50;
-	}
-	else {
-		PRINTF("NO CONFIG SETUP");
-		for(;;);
-	}
-
+  
 	while (1)
 	{
 		vTaskDelay(pdMS_TO_TICKS(sample_time*1000)); // Delay in milliseconds
@@ -348,24 +393,47 @@ static void ControlTask(void *pv) {
 		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
 		SEGGER_RTT_WriteString(0, data_out);
 
+
+		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
+		SEGGER_RTT_WriteString(0, data_out);
+
+
 		error = desired_val - (sensor);
 		out = (int) (kp * error);
 
-
-		if (mode == 2){ // PI Controller: Have not Tested
-			integral = sample_time * (sensor - sensor_old);
-			if (integral >= 5) integral = 5;			// Limit the Integral from accumulating
-			if (integral <= 0) integral = 0;
-			duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
-		}
-
-		if (mode == 1){ // P Controller with limited DutyCycle:
-			if (duty_offset + out > 100) 	duty_cycle = 100;
-			else if(duty_offset + out < 0)  duty_cycle = 0;
-			else duty_cycle = duty_offset + out;
+		switch(pidMode){
+			case PI:
+				integral = sample_time * (sensor - sensor_old);
+				// Limit the Integral from accumulating
+				if (integral >= PI_MAX) {
+					integral = PI_MAX;
+				}
+				else if (integral <= PI_MIN) {
+					integral = PI_MIN;
+				}
+				else {
+					duty_cycle = duty_offset + (int) kp*(error) + (int) ki*(integral);
+				}
+				break;
+			case P:
+				if (duty_offset + out > DUTYCYCLE_MAX) {
+					duty_cycle = DUTYCYCLE_MAX;
+				}
+				else if(duty_offset + out < DUTYCYCLE_MIN)  {
+					duty_cycle = DUTYCYCLE_MIN;
+				}
+				else {
+					duty_cycle = duty_offset + out;
+				}
+				break;
+			default:
+				printf("Control Task Error: Unknown Control Mode.");
+				for(;;)
+				break;
 		}
 	}
 }
+
 
 
 
@@ -404,7 +472,7 @@ void PWM(uint32_t period, uint32_t duty){
 	// Turn on:
 	GPIO_PortSet(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t2));
-
+  
 	// Turn off:
 	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t1));
