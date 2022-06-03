@@ -56,7 +56,6 @@ static void ControlTask(void *pv);
 static void tcTask(void *pv);
 static void rttReceive(void *pv);
 
-static void RTTreceive(void *pv);
 
 
 #define VALVE_PIN BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
@@ -64,20 +63,6 @@ static void RTTreceive(void *pv);
 
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
-
-uint8_t pwm_active = 0;
-
-
-enum testConfigEnum
-    {
-        POTENTIOMETER, KULITE
-    };
-typedef enum testConfigEnum testConfigType;
-
-testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
-float pressureScaling = 3.3;
-
-
 
 
 
@@ -312,20 +297,6 @@ static void blinkTask(void *pv) {
 //		printf("BLINK");
 	}
 }
-
-static void actuatorTask(void *pv){
-	uint32_t period = 100;
-	for(;;){
-		if (uxSemaphoreGetCount(semaphore_PWMActive )) {
-			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
-		}
-		else {
-			printf("Waiting for Semaphore\n");
-			vTaskDelay(pdMS_TO_TICKS(1000));
-		}
-	}
-}
-
 
 
 
