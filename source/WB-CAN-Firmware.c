@@ -63,6 +63,7 @@ static void rttReceive(void *pv);
 
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
+uint32_t period = 100;
 
 
 
@@ -361,12 +362,11 @@ static void ControlTask(void *pv) {
 		sensor = adcRead();
 
 
-		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
+		sprintf(data_out, "%f\t\t %d\t\t %d\r", sensor*pressureScaling, duty_cycle, period);
 		SEGGER_RTT_WriteString(0, data_out);
 
-
-		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
-		SEGGER_RTT_WriteString(0, data_out);
+		//sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
+		//SEGGER_RTT_WriteString(0, data_out);
 
 
 		error = desired_val - (sensor);
@@ -409,7 +409,6 @@ static void ControlTask(void *pv) {
 
 
 static void actuatorTask(void *pv){
-	uint32_t period = 100;
 	for(;;){
 		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
 			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
