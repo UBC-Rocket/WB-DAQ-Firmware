@@ -202,8 +202,8 @@ SemaphoreHandle_t semaphore_PWMActive;
 
 typedef enum {
         No_Command,
-        DPR_Pause,
-        DPR_Resume
+        PWM_Pause,
+        PWM_Resume
     } message_t;
 message_t message;
 
@@ -232,13 +232,13 @@ static void mainTask(void *pv){
 
 		// Feature Setting Logic:
 		switch(message){
-			case DPR_Pause:
+			case PWM_Pause:
 				xSemaphoreTake( semaphore_PWMActive, 10 );
-				printf("Command Executed: DPR_Pause.\n");
+				printf("Command Executed: PWM_Pause.\n");
 				break;
-			case DPR_Resume:
+			case PWM_Resume:
 				xSemaphoreGive(semaphore_PWMActive);
-				printf("Command Executed: DPR_Resume.\n");
+				printf("Command Executed: PWM_Resume.\n");
 				break;
 			case No_Command:
 				break;
@@ -263,15 +263,15 @@ static void rttReceive(void *pv) {
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
 				xSemaphoreTake(semaphore_Message, 10);
-				message = DPR_Pause;
+				message = PWM_Pause;
 				xSemaphoreGive(semaphore_Message);
-				SEGGER_RTT_WriteString(0, "Success: Received DPR_Pause Command./n");
+				SEGGER_RTT_WriteString(0, "Success: Received PWM_Pause Command./n");
 			}
 			if( strcmp(buffer, "o") == 0){
 				xSemaphoreTake(semaphore_Message, 10);
-				message = DPR_Resume;
+				message = PWM_Resume;
 				xSemaphoreGive(semaphore_Message);
-				SEGGER_RTT_WriteString(0, "Success: Received DPR_Resume Command./n");
+				SEGGER_RTT_WriteString(0, "Success: Received PWM_Resume Command./n");
 			}
 			printf("%s\n", buffer);
 		}
@@ -425,7 +425,6 @@ static void actuatorTask(void *pv){
 // PWM
 //	- Duty cycle uint32 between 0 and 100
 //
-
 void PWM(uint32_t period, uint32_t duty){
 	if (duty < 0 || duty > 100){
 		printf("Entered Duty Cycle is out of bounds. \n");
