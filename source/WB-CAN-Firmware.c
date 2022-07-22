@@ -259,8 +259,8 @@ static void rttReceive(void *pv) {
 	unsigned int i = 0;
 	char period_str[] = "Period: ";
 	int period_str_offset = 8;
-	char kp_str[] = "Kp Constant: ";
-	int kp_str_offset = 13;
+	char kp_str[] = "Kp: ";
+	int kp_str_offset = 4;
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
@@ -382,7 +382,7 @@ static void ControlTask(void *pv) {
 		sensor = adcRead();
 
 
-		sprintf(data_out, "%f\t\t %d\t\t %d\t\t %f\r", sensor*pressureScaling, duty_cycle, period, kp);
+		sprintf(data_out, "%s, %f, %d, %d, %f\r", message, sensor*pressureScaling, duty_cycle, period, kp);
 		SEGGER_RTT_WriteString(0, data_out);
 
 		//sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
