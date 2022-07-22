@@ -7,3 +7,10 @@
 This is a repository with the code for the UBC Rocket Whistler Blackcomb data acquisition board, which is used to collect data from sensors and return it back to the main flight computer through the CAN bus. The name was ill-advisidly chosen from the CAN bus on which the board operates despite the board having much more functionality than that. 
 
 The PCB that this board runs on can be seen [here](https://github.com/UBC-Rocket/WB-AV-4510-CAN). 
+
+
+## Documentation:
+
+### How to plot Pressure Data:
+Using RTTViewer, select "Start Terminal Logging," and save as a .log file. As of the current commit #7f6d3e1 the values are separated by commas, so they can be directly imported in excel as CSV data.
+
