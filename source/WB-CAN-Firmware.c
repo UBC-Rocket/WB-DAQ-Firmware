@@ -257,10 +257,16 @@ static void mainTask(void *pv){
 static void rttReceive(void *pv) {
 	char buffer[BUFFER_SIZE];
 	unsigned int i = 0;
+
+
+	// The Offset is where the numerical value begins in the string that I type to enter this command.
+	// an example, if I enter "Kp: 100" this will set the Kp Parameter to 100, as 100 starts at index 4
 	char period_str[] = "Period: ";
 	int period_str_offset = 8;
 	char kp_str[] = "Kp: ";
 	int kp_str_offset = 4;
+
+
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
