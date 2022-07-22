@@ -1,2 +1,6 @@
 **/Debug
 .settings/*
+
+*.DS_Store
+*.launch
+
