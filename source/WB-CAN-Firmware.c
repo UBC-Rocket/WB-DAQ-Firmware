@@ -44,7 +44,7 @@
 #define TC_I2C3_CLK_FREQ CLOCK_GetFreq((I2C3_CLK_SRC))
 #define TC_I2C3 ((I2C_Type *)TC_I2C3_BASE)
 
-#define BUFFER_SIZE 10
+#define BUFFER_SIZE 50
 /*******************************************************************************
  * Task Prototypes
  ******************************************************************************/
@@ -63,6 +63,8 @@ static void rttReceive(void *pv);
 
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
+uint32_t period = 100;
+float kp;
 
 
 
@@ -202,8 +204,8 @@ SemaphoreHandle_t semaphore_PWMActive;
 
 typedef enum {
         No_Command,
-        DPR_Pause,
-        DPR_Resume
+        PWM_Pause,
+        PWM_Resume
     } message_t;
 message_t message;
 
@@ -232,13 +234,13 @@ static void mainTask(void *pv){
 
 		// Feature Setting Logic:
 		switch(message){
-			case DPR_Pause:
+			case PWM_Pause:
 				xSemaphoreTake( semaphore_PWMActive, 10 );
-				printf("Command Executed: DPR_Pause.\n");
+				printf("Command Executed: PWM_Pause.\n");
 				break;
-			case DPR_Resume:
+			case PWM_Resume:
 				xSemaphoreGive(semaphore_PWMActive);
-				printf("Command Executed: DPR_Resume.\n");
+				printf("Command Executed: PWM_Resume.\n");
 				break;
 			case No_Command:
 				break;
@@ -249,11 +251,22 @@ static void mainTask(void *pv){
 
 }
 
+// Tuning Parameters:
 
 // Task that is constantly waiting for RTT
 static void rttReceive(void *pv) {
 	char buffer[BUFFER_SIZE];
 	unsigned int i = 0;
+
+
+	// The Offset is where the numerical value begins in the string that I type to enter this command.
+	// an example, if I enter "Kp: 100" this will set the Kp Parameter to 100, as 100 starts at index 4
+	char period_str[] = "Period: ";
+	int period_str_offset = 8;
+	char kp_str[] = "Kp: ";
+	int kp_str_offset = 4;
+
+
 	while(1) {
 		vTaskDelay(pdMS_TO_TICKS(200));
 		//SEGGER_RTT_WriteString(0, "SEGGER Real-Time-Terminal Sample\r\n\r\n");
@@ -263,15 +276,29 @@ static void rttReceive(void *pv) {
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
 				xSemaphoreTake(semaphore_Message, 10);
-				message = DPR_Pause;
+				message = PWM_Pause;
 				xSemaphoreGive(semaphore_Message);
-				SEGGER_RTT_WriteString(0, "Success: Received DPR_Pause Command./n");
+				SEGGER_RTT_WriteString(0, "Success: Received PWM_Pause Command./n");
 			}
-			if( strcmp(buffer, "o") == 0){
+			else if( strcmp(buffer, "o") == 0){
 				xSemaphoreTake(semaphore_Message, 10);
-				message = DPR_Resume;
+				message = PWM_Resume;
 				xSemaphoreGive(semaphore_Message);
-				SEGGER_RTT_WriteString(0, "Success: Received DPR_Resume Command./n");
+				SEGGER_RTT_WriteString(0, "Success: Received PWM_Resume Command./n");
+			}
+			// PWM Period
+			else if ( strstr(buffer, period_str)){
+				period = strtol(buffer+period_str_offset, NULL, 10);
+				printf("%P=d\n\r", period);
+			}
+			// Proportional Constant
+			else if ( strstr(buffer, kp_str)){
+				kp = strtod(buffer+kp_str_offset, NULL);
+				printf("KP=%d\n\r", kp);
+			}
+			else{
+				period = strtol(buffer, NULL, 10);
+				printf("P=%d\n\r", period);
 			}
 			printf("%s\n", buffer);
 		}
@@ -322,7 +349,7 @@ static void ControlTask(void *pv) {
 
 
 	static char data_out[80];
-	float error, desired_val, kp;
+	float error, desired_val;
 
 	float sensor = adcRead(); // Reads in Voltage
 
@@ -361,12 +388,11 @@ static void ControlTask(void *pv) {
 		sensor = adcRead();
 
 
-		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
+		sprintf(data_out, "%s, %f, %d, %d, %f\r", message, sensor*pressureScaling, duty_cycle, period, kp);
 		SEGGER_RTT_WriteString(0, data_out);
 
-
-		sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
-		SEGGER_RTT_WriteString(0, data_out);
+		//sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
+		//SEGGER_RTT_WriteString(0, data_out);
 
 
 		error = desired_val - (sensor);
@@ -409,7 +435,6 @@ static void ControlTask(void *pv) {
 
 
 static void actuatorTask(void *pv){
-	uint32_t period = 100;
 	for(;;){
 		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
 			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
@@ -425,7 +450,6 @@ static void actuatorTask(void *pv){
 // PWM
 //	- Duty cycle uint32 between 0 and 100
 //
-
 void PWM(uint32_t period, uint32_t duty){
 	if (duty < 0 || duty > 100){
 		printf("Entered Duty Cycle is out of bounds. \n");
