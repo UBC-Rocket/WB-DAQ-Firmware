@@ -1,6 +1,5 @@
 #include "buffer.h"
 
-
 void m_buffer_init(struct m_buffer *buf) {
     buf->front = 0;
     buf->end = 0;

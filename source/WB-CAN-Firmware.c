@@ -94,6 +94,8 @@ typedef enum testConfigEnum
 testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
 float pressureScaling = 3.3;
 
+struct m_buffer m_buf;
+
 /*******************************************************************************
  * Main
  ******************************************************************************/
@@ -116,6 +118,9 @@ int main(void) {
 
 
     BaseType_t error;
+
+	// initialize m_buffer
+	m_buffer_init(&m_buf);
 
     // Create the BlinkTest
     if ((error = xTaskCreate(blinkTask,
@@ -221,15 +226,11 @@ static void mainTask(void *pv){
 	for(;;){
 		vTaskDelay(pdMS_TO_TICKS(200));
 
-		// Wait for message
-		while(uxSemaphoreGetCount(semaphore_Message) == 0){
-		};
-
-		// Semaphore is Available, so now we can take it and read the message:
-		xSemaphoreTake(semaphore_Message, 10);
+		// acquire semaphore
+		xSemaphoreTake(semaphore_Message, 0);
 
 		// Feature Setting Logic:
-		switch(message){
+		switch(m_buffer_pop(&m_buf)){
 			case PWM_Pause:
 				xSemaphoreTake( semaphore_PWMActive, 10 );
 				printf("Command Executed: PWM_Pause.\n");
@@ -241,7 +242,6 @@ static void mainTask(void *pv){
 			case No_Command:
 				break;
 		}
-		message = No_Command;
 		xSemaphoreGive(semaphore_Message);
 	}
 
@@ -272,13 +272,13 @@ static void rttReceive(void *pv) {
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
 				xSemaphoreTake(semaphore_Message, 10);
-				message = PWM_Pause;
+				m_buffer_push(&m_buf, PWM_Pause);
 				xSemaphoreGive(semaphore_Message);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Pause Command./n");
 			}
 			else if( strcmp(buffer, "o") == 0){
 				xSemaphoreTake(semaphore_Message, 10);
-				message = PWM_Resume;
+				m_buffer_push(&m_buf, PWM_Resume);
 				xSemaphoreGive(semaphore_Message);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Resume Command./n");
 			}
@@ -383,7 +383,7 @@ static void ControlTask(void *pv) {
 		sensor_old = sensor;
 		sensor = adcRead();
 
-
+		// what is message being used for here?
 		sprintf(data_out, "%s, %f, %d, %d, %f\r", message, sensor*pressureScaling, duty_cycle, period, kp);
 		SEGGER_RTT_WriteString(0, data_out);
 
