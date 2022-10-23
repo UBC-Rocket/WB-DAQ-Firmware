@@ -1,0 +1,14 @@
+{
+    "files.associations": {
+        "stdint.h": "c",
+        "semphr.h": "c",
+        "stddef.h": "c",
+        "adc.h": "c",
+        "stdio.h": "c",
+        "board.h": "c",
+        "peripherals.h": "c",
+        "message_types.h": "c",
+        "segger_rtt.h": "c",
+        "fsl_i2c_freertos.h": "c"
+    }
+}

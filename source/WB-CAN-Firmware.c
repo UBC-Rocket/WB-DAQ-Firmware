@@ -26,7 +26,8 @@
 
 #include "SEGGER_RTT.h"
 
-
+#include "message_types.h"
+#include "buffer.h"
 
 
 /*******************************************************************************
@@ -202,11 +203,6 @@ SemaphoreHandle_t semaphore_PWMActive;
 
 // Create Message Type that takes specific values using Enumerate:
 
-typedef enum {
-        No_Command,
-        PWM_Pause,
-        PWM_Resume
-    } message_t;
 message_t message;
 
 /*
