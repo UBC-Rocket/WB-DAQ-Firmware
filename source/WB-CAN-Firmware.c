@@ -203,7 +203,6 @@ int main(void) {
 
 
 // Initialize Semaphores:
-SemaphoreHandle_t semaphore_Message;
 SemaphoreHandle_t semaphore_PWMActive;
 
 // Create Message Type that takes specific values using Enumerate:
@@ -218,16 +217,12 @@ message_t message;
 static void mainTask(void *pv){
 
 	// Create Semaphores:
-    semaphore_Message = xSemaphoreCreateBinary();
     semaphore_PWMActive = xSemaphoreCreateBinary();
 
 
     // Forever Loop:
 	for(;;){
 		vTaskDelay(pdMS_TO_TICKS(200));
-
-		// acquire semaphore
-		xSemaphoreTake(semaphore_Message, 0);
 
 		// Feature Setting Logic:
 		switch(m_buffer_pop(&m_buf)){
@@ -242,7 +237,6 @@ static void mainTask(void *pv){
 			case No_Command:
 				break;
 		}
-		xSemaphoreGive(semaphore_Message);
 	}
 
 }
@@ -271,15 +265,11 @@ static void rttReceive(void *pv) {
 		buffer[i]= '\0';
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
-				xSemaphoreTake(semaphore_Message, 10);
 				m_buffer_push(&m_buf, PWM_Pause);
-				xSemaphoreGive(semaphore_Message);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Pause Command./n");
 			}
 			else if( strcmp(buffer, "o") == 0){
-				xSemaphoreTake(semaphore_Message, 10);
 				m_buffer_push(&m_buf, PWM_Resume);
-				xSemaphoreGive(semaphore_Message);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Resume Command./n");
 			}
 			// PWM Period
