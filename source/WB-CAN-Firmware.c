@@ -383,7 +383,8 @@ static void ControlTask(void *pv) {
 		sensor_old = sensor;
 		sensor = adcRead();
 
-		// what is message being used for here?
+		// TODO: set up logging with the new message buffer.
+		// Currently, this will print garbage because message is no longer being used.
 		sprintf(data_out, "%s, %f, %d, %d, %f\r", message, sensor*pressureScaling, duty_cycle, period, kp);
 		SEGGER_RTT_WriteString(0, data_out);
 
