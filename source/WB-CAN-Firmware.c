@@ -273,6 +273,8 @@ static void rttReceive(void *pv) {
 
 		i = SEGGER_RTT_Read(0, buffer, BUFFER_SIZE);
 		buffer[i]= '\0';
+
+		// TODO: Make this a switch or something easier to read
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
 				m_buffer_push(&m_buf, PWM_Pause);
@@ -293,8 +295,9 @@ static void rttReceive(void *pv) {
 				printf("KP=%d\n\r", kp);
 			}
 			else{
-				period = strtol(buffer, NULL, 10);
-				printf("P=%d\n\r", period);
+				//period = strtol(buffer, NULL, 10);
+				//printf("P=%d\n\r", period);
+				printf('no command for the given message')
 			}
 			printf("%s\n", buffer);
 		}
