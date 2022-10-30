@@ -25,6 +25,8 @@
 #include "fsl_i2c_freertos.h"
 
 #include "SEGGER_RTT.h"
+#include "highside_switch.h"
+
 
 
 
@@ -169,6 +171,17 @@ int main(void) {
     	NULL,
     	0,
     	NULL)) != pdPASS) {
+        	printf("Task init failed: %ld\n", error);
+        	for (;;)
+        	    ;
+        };
+
+	if ((error =  xTaskCreate(switchSignal, 
+		"Master_task", 
+		512, 
+		NULL, 
+		0,
+		NULL)) != pdPASS) {
         	printf("Task init failed: %ld\n", error);
         	for (;;)
         	    ;
