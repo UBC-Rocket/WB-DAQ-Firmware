@@ -96,6 +96,8 @@ float pressureScaling = 3.3;
 
 struct m_buffer m_buf;
 
+TaskHandle_t actuator_task;
+
 /*******************************************************************************
  * Main
  ******************************************************************************/
@@ -163,7 +165,7 @@ int main(void) {
 		512,
 		NULL,
 		0,
-		NULL)) != pdPASS) {
+		&actuator_task)) != pdPASS) {
 			printf("Task init failed: %ld\n", error);
 			for (;;)
 				;
@@ -218,24 +220,32 @@ static void mainTask(void *pv){
 
 	// Create Semaphores:
     semaphore_PWMActive = xSemaphoreCreateBinary();
-
+	message_t working_buf[256];
+	int8_t working_buf_size;
 
     // Forever Loop:
 	for(;;){
 		vTaskDelay(pdMS_TO_TICKS(200));
 
+		xSemaphoreTakeRecursive(m_buf.lock, 0);
+		working_buf_size = m_buf.size;
+		for (int i = 0; i < working_buf_size; i++) {
+			working_buf[i] = m_buffer_pop(&m_buf);
+		}
+		xSemaphoreGiveRecursive(m_buf.lock);
+
 		// Feature Setting Logic:
-		switch(m_buffer_pop(&m_buf)){
-			case PWM_Pause:
-				xSemaphoreTake( semaphore_PWMActive, 10 );
-				printf("Command Executed: PWM_Pause.\n");
-				break;
-			case PWM_Resume:
-				xSemaphoreGive(semaphore_PWMActive);
-				printf("Command Executed: PWM_Resume.\n");
-				break;
-			case No_Command:
-				break;
+		for (int i = 0; i < working_buf_size; i++) {
+			switch(working_buf[i]){
+				case PWM_Pause:
+					vTaskSuspend(actuator_task);
+					break;
+				case PWM_Resume:
+					vTaskResume(actuator_task);
+					break;
+				case No_Command:
+					break;
+			}
 		}
 	}
 
@@ -421,14 +431,9 @@ static void ControlTask(void *pv) {
 
 
 static void actuatorTask(void *pv){
+
 	for(;;){
-		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
-			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
-		}
-		else if(uxSemaphoreGetCount( semaphore_PWMActive ) == 0){
-			printf("Waiting for Semaphore\n");
-			vTaskDelay(pdMS_TO_TICKS(1000));
-		}
+		PWM(period, duty_cycle);
 	}
 }
 
