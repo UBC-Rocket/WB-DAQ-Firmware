@@ -1,7 +1,7 @@
 #ifndef ADC_H
 #define ADC_H
 
-#include <lib/adc.h>
+#include "adc.h"
 #include <stdio.h>
 #include "MK66F18.h"
 #include "board.h"
