@@ -106,12 +106,143 @@ static void ADC0_init(void) {
 }
 
 /***********************************************************************************************************************
+ * SPI0 initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'SPI0'
+- type: 'dspi'
+- mode: 'freertos'
+- custom_name_enabled: 'false'
+- type_id: 'dspi_305e5b03c593d065f61ded8061d15797'
+- functional_group: 'BOARD_InitPeripherals'
+- peripheral: 'SPI0'
+- config_sets:
+  - fsl_dspi:
+    - dspi_mode: 'kDSPI_Master'
+    - clockSource: 'BusInterfaceClock'
+    - clockSourceFreq: 'GetFreq'
+    - rtos_handle:
+      - enable_custom_name: 'false'
+    - dspi_master_config:
+      - whichCtar: 'kDSPI_Ctar0'
+      - ctarConfig:
+        - baudRate: '500000'
+        - bitsPerFrame: '8'
+        - cpol: 'kDSPI_ClockPolarityActiveHigh'
+        - cpha: 'kDSPI_ClockPhaseFirstEdge'
+        - direction: 'kDSPI_MsbFirst'
+        - pcsToSckDelayInNanoSec: '1000'
+        - lastSckToPcsDelayInNanoSec: '1000'
+        - betweenTransferDelayInNanoSec: '1000'
+      - whichPcs: 'PCS0_SS'
+      - pcsActiveHighOrLow: 'kDSPI_PcsActiveLow'
+      - enableContinuousSCK: 'false'
+      - enableRxFifoOverWrite: 'false'
+      - enableModifiedTimingFormat: 'false'
+      - samplePoint: 'kDSPI_SckToSin0Clock'
+    - quick_selection: 'QS_DSPI_1'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+dspi_rtos_handle_t SPI0_rtosHandle;
+const dspi_master_config_t SPI0_config = {
+  .whichCtar = kDSPI_Ctar0,
+  .ctarConfig = {
+    .baudRate = 500000UL,
+    .bitsPerFrame = 8UL,
+    .cpol = kDSPI_ClockPolarityActiveHigh,
+    .cpha = kDSPI_ClockPhaseFirstEdge,
+    .direction = kDSPI_MsbFirst,
+    .pcsToSckDelayInNanoSec = 1000UL,
+    .lastSckToPcsDelayInNanoSec = 1000UL,
+    .betweenTransferDelayInNanoSec = 1000UL
+  },
+  .whichPcs = kDSPI_Pcs0,
+  .pcsActiveHighOrLow = kDSPI_PcsActiveLow,
+  .enableContinuousSCK = false,
+  .enableRxFifoOverWrite = false,
+  .enableModifiedTimingFormat = false,
+  .samplePoint = kDSPI_SckToSin0Clock
+};
+
+static void SPI0_init(void) {
+  /* Initialization function */
+  DSPI_RTOS_Init(&SPI0_rtosHandle, SPI0_PERIPHERAL, &SPI0_config, SPI0_CLK_FREQ);
+}
+
+/***********************************************************************************************************************
+ * SPI1 initialization code
+ **********************************************************************************************************************/
+/* clang-format off */
+/* TEXT BELOW IS USED AS SETTING FOR TOOLS *************************************
+instance:
+- name: 'SPI1'
+- type: 'dspi'
+- mode: 'DSPI_Polling'
+- custom_name_enabled: 'false'
+- type_id: 'dspi_305e5b03c593d065f61ded8061d15797'
+- functional_group: 'BOARD_InitPeripherals'
+- peripheral: 'SPI1'
+- config_sets:
+  - fsl_dspi:
+    - dspi_mode: 'kDSPI_Master'
+    - clockSource: 'BusInterfaceClock'
+    - clockSourceFreq: 'GetFreq'
+    - dspi_master_config:
+      - whichCtar: 'kDSPI_Ctar0'
+      - ctarConfig:
+        - baudRate: '500000'
+        - bitsPerFrame: '8'
+        - cpol: 'kDSPI_ClockPolarityActiveHigh'
+        - cpha: 'kDSPI_ClockPhaseFirstEdge'
+        - direction: 'kDSPI_MsbFirst'
+        - pcsToSckDelayInNanoSec: '1000'
+        - lastSckToPcsDelayInNanoSec: '1000'
+        - betweenTransferDelayInNanoSec: '1000'
+      - whichPcs: 'PCS1'
+      - pcsActiveHighOrLow: 'kDSPI_PcsActiveLow'
+      - enableContinuousSCK: 'false'
+      - enableRxFifoOverWrite: 'false'
+      - enableModifiedTimingFormat: 'false'
+      - samplePoint: 'kDSPI_SckToSin0Clock'
+    - quick_selection: 'QS_DSPI_1'
+ * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
+/* clang-format on */
+const dspi_master_config_t SPI1_config = {
+  .whichCtar = kDSPI_Ctar0,
+  .ctarConfig = {
+    .baudRate = 500000UL,
+    .bitsPerFrame = 8UL,
+    .cpol = kDSPI_ClockPolarityActiveHigh,
+    .cpha = kDSPI_ClockPhaseFirstEdge,
+    .direction = kDSPI_MsbFirst,
+    .pcsToSckDelayInNanoSec = 1000UL,
+    .lastSckToPcsDelayInNanoSec = 1000UL,
+    .betweenTransferDelayInNanoSec = 1000UL
+  },
+  .whichPcs = kDSPI_Pcs1,
+  .pcsActiveHighOrLow = kDSPI_PcsActiveLow,
+  .enableContinuousSCK = false,
+  .enableRxFifoOverWrite = false,
+  .enableModifiedTimingFormat = false,
+  .samplePoint = kDSPI_SckToSin0Clock
+};
+
+static void SPI1_init(void) {
+  /* Initialization function */
+  DSPI_MasterInit(SPI1_PERIPHERAL, &SPI1_config, SPI1_CLK_FREQ);
+}
+
+/***********************************************************************************************************************
  * Initialization functions
  **********************************************************************************************************************/
 void BOARD_InitPeripherals(void)
 {
   /* Initialize components */
   ADC0_init();
+  SPI0_init();
+  SPI1_init();
 }
 
 /***********************************************************************************************************************

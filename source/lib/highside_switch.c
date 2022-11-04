@@ -1,7 +1,8 @@
 #include "highside_switch.h"
+#include "stdio.h"
 
 uint8_t masterReceiveBuffer[TRANSFER_SIZE] = {0};
-uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b00000010, 0b01000000};
+uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b00011000, 0b10111101};
 
 
 dspi_transfer_t masterXfer;
@@ -48,13 +49,13 @@ void switchSignal(void *pv) {
     }
 
 	while(1){
-		masterXfer.txData[1] ^= 1UL << 7;
-		masterXfer.txData[1] ^= 1UL << 6;
+		//masterXfer.txData[1] ^= 1UL << 7;
+		//masterXfer.txData[1] ^= 1UL << 6;
 
 		status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
-		printf("RX: ");
+		printf("TX: ");
 		for(int i = 0; i < TRANSFER_SIZE; ++i){
-			printf(" %d ", masterXfer.rxData[i]);
+			printf(" %d ", masterXfer.txData[i]);
 		}
 		printf("\n");
 		vTaskDelay(pdMS_TO_TICKS(100));

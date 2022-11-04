@@ -59,19 +59,12 @@ static void tcTask(void *pv);
 static void rttReceive(void *pv);
 
 
-
-#define VALVE_PIN BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
-#define VALVE_PIN_MASK BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
-
 void PWM(uint32_t, uint32_t);
 uint32_t duty_cycle = 10;
 uint32_t period = 100;
 float kp;
 
 
-
-#define VALVE_PIN BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO
-#define VALVE_PIN_MASK BOARD_INITPINS_HS_SWITCH_B_IN0_GPIO_PIN_MASK
 
 uint8_t pwm_active = 0;
 
@@ -112,8 +105,13 @@ int main(void) {
     BOARD_InitDebugConsole();
 #endif
 
+
+    /* Set interrupt priorities for Peripherals */
+
     NVIC_SetPriority(TC_I2C1_IRQN, 3);
     NVIC_SetPriority(TC_I2C3_IRQN, 3);
+
+	NVIC_SetPriority(EXAMPLE_DSPI_MASTER_IRQN, 3);
 
 
     BaseType_t error;
@@ -358,7 +356,7 @@ static void ControlTask(void *pv) {
 
 	// Set Pin to ON State
 	//GPIO_PortSet(valvePin, valvePinMask);
-	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
+	//GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
 
 
 	static char data_out[80];
@@ -478,12 +476,12 @@ void PWM(uint32_t period, uint32_t duty){
 
 
 	// Turn on:
-	GPIO_PortSet(VALVE_PIN, VALVE_PIN_MASK);
-	vTaskDelay(pdMS_TO_TICKS(t2));
+	//GPIO_PortSet(VALVE_PIN, VALVE_PIN_MASK);
+	//vTaskDelay(pdMS_TO_TICKS(t2));
   
 	// Turn off:
-	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
-	vTaskDelay(pdMS_TO_TICKS(t1));
+	//GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
+	//vTaskDelay(pdMS_TO_TICKS(t1));
 }
 
 

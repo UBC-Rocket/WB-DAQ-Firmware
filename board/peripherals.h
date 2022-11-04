@@ -11,6 +11,8 @@
  **********************************************************************************************************************/
 #include "fsl_common.h"
 #include "fsl_adc16.h"
+#include "fsl_dspi.h"
+#include "fsl_dspi_freertos.h"
 
 #if defined(__cplusplus)
 extern "C" {
@@ -26,6 +28,20 @@ extern "C" {
 #define ADC0_IRQN ADC0_IRQn
 /* ADC0 interrupt handler identifier. */
 #define ADC0_IRQHANDLER ADC0_IRQHandler
+/* BOARD_InitPeripherals defines for SPI0 */
+/* Definition of peripheral ID */
+#define SPI0_PERIPHERAL SPI0
+/* Definition of the clock source */
+#define SPI0_CLOCK_SOURCE DSPI0_CLK_SRC
+/* Definition of the clock source frequency */
+#define SPI0_CLK_FREQ CLOCK_GetFreq(SPI0_CLOCK_SOURCE)
+/* BOARD_InitPeripherals defines for SPI1 */
+/* Definition of peripheral ID */
+#define SPI1_PERIPHERAL SPI1
+/* Definition of the clock source */
+#define SPI1_CLOCK_SOURCE DSPI1_CLK_SRC
+/* Definition of the clock source frequency */
+#define SPI1_CLK_FREQ CLOCK_GetFreq(SPI1_CLOCK_SOURCE)
 
 /***********************************************************************************************************************
  * Global variables
@@ -33,6 +49,9 @@ extern "C" {
 extern const adc16_config_t ADC0_config;
 extern const adc16_channel_mux_mode_t ADC0_muxMode;
 extern const adc16_hardware_average_mode_t ADC0_hardwareAverageMode;
+extern dspi_rtos_handle_t SPI0_rtosHandle;
+extern const dspi_master_config_t SPI0_config;
+extern const dspi_master_config_t SPI1_config;
 
 /***********************************************************************************************************************
  * Initialization functions
