@@ -297,7 +297,7 @@ static void rttReceive(void *pv) {
 			else{
 				//period = strtol(buffer, NULL, 10);
 				//printf("P=%d\n\r", period);
-				printf('no command for the given message')
+				printf("no command for the given message");
 			}
 			printf("%s\n", buffer);
 		}
