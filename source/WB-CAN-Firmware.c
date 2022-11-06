@@ -26,7 +26,8 @@
 
 #include "SEGGER_RTT.h"
 
-
+#include "message_types.h"
+#include "buffer.h"
 
 
 /*******************************************************************************
@@ -93,6 +94,10 @@ typedef enum testConfigEnum
 testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
 float pressureScaling = 3.3;
 
+struct mBuffer mBuf;
+
+TaskHandle_t actuator_task;
+
 /*******************************************************************************
  * Main
  ******************************************************************************/
@@ -115,6 +120,9 @@ int main(void) {
 
 
     BaseType_t error;
+
+	// initialize mBuffer
+	mBufferInit(&mBuf);
 
     // Create the BlinkTest
     if ((error = xTaskCreate(blinkTask,
@@ -157,7 +165,7 @@ int main(void) {
 		512,
 		NULL,
 		0,
-		NULL)) != pdPASS) {
+		&actuator_task)) != pdPASS) {
 			printf("Task init failed: %ld\n", error);
 			for (;;)
 				;
@@ -197,16 +205,10 @@ int main(void) {
 
 
 // Initialize Semaphores:
-SemaphoreHandle_t semaphore_Message;
 SemaphoreHandle_t semaphore_PWMActive;
 
 // Create Message Type that takes specific values using Enumerate:
 
-typedef enum {
-        No_Command,
-        PWM_Pause,
-        PWM_Resume
-    } message_t;
 message_t message;
 
 /*
@@ -217,36 +219,34 @@ message_t message;
 static void mainTask(void *pv){
 
 	// Create Semaphores:
-    semaphore_Message = xSemaphoreCreateBinary();
     semaphore_PWMActive = xSemaphoreCreateBinary();
-
+	message_t working_buf[256];
+	int8_t working_buf_size;
 
     // Forever Loop:
 	for(;;){
 		vTaskDelay(pdMS_TO_TICKS(200));
 
-		// Wait for message
-		while(uxSemaphoreGetCount(semaphore_Message) == 0){
-		};
-
-		// Semaphore is Available, so now we can take it and read the message:
-		xSemaphoreTake(semaphore_Message, 10);
+		xSemaphoreTakeRecursive(mBuf.lock, 0);
+		working_buf_size = mBuf.size;
+		for (int i = 0; i < working_buf_size; i++) {
+			working_buf[i] = mBufferPop(&mBuf);
+		}
+		xSemaphoreGiveRecursive(mBuf.lock);
 
 		// Feature Setting Logic:
-		switch(message){
-			case PWM_Pause:
-				xSemaphoreTake( semaphore_PWMActive, 10 );
-				printf("Command Executed: PWM_Pause.\n");
-				break;
-			case PWM_Resume:
-				xSemaphoreGive(semaphore_PWMActive);
-				printf("Command Executed: PWM_Resume.\n");
-				break;
-			case No_Command:
-				break;
+		for (int i = 0; i < working_buf_size; i++) {
+			switch(working_buf[i]){
+				case PWM_Pause:
+					vTaskSuspend(actuator_task);
+					break;
+				case PWM_Resume:
+					vTaskResume(actuator_task);
+					break;
+				case No_Command:
+					break;
+			}
 		}
-		message = No_Command;
-		xSemaphoreGive(semaphore_Message);
 	}
 
 }
@@ -273,17 +273,15 @@ static void rttReceive(void *pv) {
 
 		i = SEGGER_RTT_Read(0, buffer, BUFFER_SIZE);
 		buffer[i]= '\0';
+
+		// TODO: Make this a switch or something easier to read
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
-				xSemaphoreTake(semaphore_Message, 10);
-				message = PWM_Pause;
-				xSemaphoreGive(semaphore_Message);
+				mBufferPush(&mBuf, PWM_Pause);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Pause Command./n");
 			}
 			else if( strcmp(buffer, "o") == 0){
-				xSemaphoreTake(semaphore_Message, 10);
-				message = PWM_Resume;
-				xSemaphoreGive(semaphore_Message);
+				mBufferPush(&mBuf, PWM_Resume);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Resume Command./n");
 			}
 			// PWM Period
@@ -297,8 +295,9 @@ static void rttReceive(void *pv) {
 				printf("KP=%d\n\r", kp);
 			}
 			else{
-				period = strtol(buffer, NULL, 10);
-				printf("P=%d\n\r", period);
+				//period = strtol(buffer, NULL, 10);
+				//printf("P=%d\n\r", period);
+				printf("no command for the given message");
 			}
 			printf("%s\n", buffer);
 		}
@@ -387,8 +386,9 @@ static void ControlTask(void *pv) {
 		sensor_old = sensor;
 		sensor = adcRead();
 
-
-		sprintf(data_out, "%s, %f, %d, %d, %f\r", message, sensor*pressureScaling, duty_cycle, period, kp);
+		// TODO: set up logging with the new message buffer.
+		// Currently, this will print garbage because message is no longer being used.
+		sprintf(data_out, "%f, %d, %d, %f\r", sensor*pressureScaling, duty_cycle, period, kp);
 		SEGGER_RTT_WriteString(0, data_out);
 
 		//sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
@@ -435,14 +435,9 @@ static void ControlTask(void *pv) {
 
 
 static void actuatorTask(void *pv){
+
 	for(;;){
-		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
-			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
-		}
-		else if(uxSemaphoreGetCount( semaphore_PWMActive ) == 0){
-			printf("Waiting for Semaphore\n");
-			vTaskDelay(pdMS_TO_TICKS(1000));
-		}
+		PWM(period, duty_cycle);
 	}
 }
 
