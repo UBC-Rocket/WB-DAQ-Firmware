@@ -388,7 +388,7 @@ static void ControlTask(void *pv) {
 
 		// TODO: set up logging with the new message buffer.
 		// Currently, this will print garbage because message is no longer being used.
-		sprintf(data_out, "%s, %f, %d, %d, %f\r", message, sensor*pressureScaling, duty_cycle, period, kp);
+		sprintf(data_out, "%f, %d, %d, %f\r", sensor*pressureScaling, duty_cycle, period, kp);
 		SEGGER_RTT_WriteString(0, data_out);
 
 		//sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
