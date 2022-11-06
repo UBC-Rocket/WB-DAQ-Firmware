@@ -94,7 +94,7 @@ typedef enum testConfigEnum
 testConfigType testConfig = POTENTIOMETER; // Swap this to Kulite or Potentiometer.
 float pressureScaling = 3.3;
 
-struct m_buffer m_buf;
+struct mBuffer mBuf;
 
 TaskHandle_t actuator_task;
 
@@ -121,8 +121,8 @@ int main(void) {
 
     BaseType_t error;
 
-	// initialize m_buffer
-	m_buffer_init(&m_buf);
+	// initialize mBuffer
+	mBufferInit(&mBuf);
 
     // Create the BlinkTest
     if ((error = xTaskCreate(blinkTask,
@@ -227,12 +227,12 @@ static void mainTask(void *pv){
 	for(;;){
 		vTaskDelay(pdMS_TO_TICKS(200));
 
-		xSemaphoreTakeRecursive(m_buf.lock, 0);
-		working_buf_size = m_buf.size;
+		xSemaphoreTakeRecursive(mBuf.lock, 0);
+		working_buf_size = mBuf.size;
 		for (int i = 0; i < working_buf_size; i++) {
-			working_buf[i] = m_buffer_pop(&m_buf);
+			working_buf[i] = mBufferPop(&mBuf);
 		}
-		xSemaphoreGiveRecursive(m_buf.lock);
+		xSemaphoreGiveRecursive(mBuf.lock);
 
 		// Feature Setting Logic:
 		for (int i = 0; i < working_buf_size; i++) {
@@ -277,11 +277,11 @@ static void rttReceive(void *pv) {
 		// TODO: Make this a switch or something easier to read
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
-				m_buffer_push(&m_buf, PWM_Pause);
+				mBufferPush(&mBuf, PWM_Pause);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Pause Command./n");
 			}
 			else if( strcmp(buffer, "o") == 0){
-				m_buffer_push(&m_buf, PWM_Resume);
+				mBufferPush(&mBuf, PWM_Resume);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Resume Command./n");
 			}
 			// PWM Period

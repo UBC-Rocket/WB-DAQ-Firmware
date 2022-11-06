@@ -16,7 +16,7 @@
  * NOTE: If you want to do multiple operations, such as check the size and then push/pop,
  * it is safe to acquire the lock outside of push/pop and it will not result in deadlock.
 */
-struct m_buffer {
+struct mBuffer {
     /// @brief The buffer that stores messages
     message_t buf[MESSAGE_BUFFER_SIZE];
     /// @brief The index of the next item to remove
@@ -30,9 +30,9 @@ struct m_buffer {
 };
 
 /**
- * Initializes an m_buffer
+ * Initializes an mBuffer
 */
-void m_buffer_init(struct m_buffer *buf);
+void mBufferInit(struct mBuffer *buf);
 
 /**
  * puts a message into the given buffer.
@@ -40,13 +40,13 @@ void m_buffer_init(struct m_buffer *buf);
  * @param[in] buf the buffer to insert into
  * @param[in] m   the message to insert into the buffer
 */
-void m_buffer_push(struct m_buffer *buf, message_t m);
+void mBufferPush(struct mBuffer *buf, message_t m);
 
 /**
  * takes a message out of the given buffer.
  * NOTE: If the buffer is empty returns No_Command
  * @param[in] buf the buffer to remove the message from
 */
-message_t m_buffer_pop(struct m_buffer *buf);
+message_t mBufferPop(struct mBuffer *buf);
 
 #endif /* _BUFFER_H_ */
