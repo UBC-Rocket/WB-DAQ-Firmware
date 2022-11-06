@@ -276,7 +276,7 @@
                      </config_set>
                   </instance>
                   <instance name="SPI0" uuid="dac9c806-a77d-4ef7-9d11-804339c22667" type="dspi" type_id="dspi_305e5b03c593d065f61ded8061d15797" mode="freertos" peripheral="SPI0" enabled="true" comment="" custom_name_enabled="false">
-                     <config_set name="fsl_dspi" quick_selection="QS_DSPI_1">
+                     <config_set name="fsl_dspi">
                         <setting name="dspi_mode" value="kDSPI_Master"/>
                         <setting name="clockSource" value="BusInterfaceClock"/>
                         <setting name="clockSourceFreq" value="GetFreq"/>
@@ -287,7 +287,7 @@
                            <setting name="whichCtar" value="kDSPI_Ctar0"/>
                            <struct name="ctarConfig">
                               <setting name="baudRate" value="500000"/>
-                              <setting name="bitsPerFrame" value="8"/>
+                              <setting name="bitsPerFrame" value="16"/>
                               <setting name="cpol" value="kDSPI_ClockPolarityActiveHigh"/>
                               <setting name="cpha" value="kDSPI_ClockPhaseFirstEdge"/>
                               <setting name="direction" value="kDSPI_MsbFirst"/>

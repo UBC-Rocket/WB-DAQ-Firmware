@@ -1,9 +1,8 @@
 #include "highside_switch.h"
 #include "stdio.h"
 
-uint8_t masterReceiveBuffer[TRANSFER_SIZE] = {0};
-uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b00000000000011000, 0b10111101};
-
+uint8_t masterReceiveBuffer[TRANSFER_SIZE];// = {0};
+uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b0000000000001100};
 
 dspi_transfer_t masterXfer;
 dspi_rtos_handle_t master_rtos_handle;
@@ -46,11 +45,14 @@ void switchSignal(void *pv) {
     if (status == kStatus_Success)
     {
         xSemaphoreGive(dspi_sem);
-    }
+    } 
 
 	while(1){
 		//masterXfer.txData[1] ^= 1UL << 7;
 		//masterXfer.txData[1] ^= 1UL << 6;
+
+        // Toggle the Watchdog Bit of the TX Data
+        masterXfer.txData[1] ^=  1UL << 16;
 
 		status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
 		printf("TX: ");

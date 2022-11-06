@@ -129,7 +129,7 @@ instance:
       - whichCtar: 'kDSPI_Ctar0'
       - ctarConfig:
         - baudRate: '500000'
-        - bitsPerFrame: '8'
+        - bitsPerFrame: '16'
         - cpol: 'kDSPI_ClockPolarityActiveHigh'
         - cpha: 'kDSPI_ClockPhaseFirstEdge'
         - direction: 'kDSPI_MsbFirst'
@@ -142,7 +142,6 @@ instance:
       - enableRxFifoOverWrite: 'false'
       - enableModifiedTimingFormat: 'false'
       - samplePoint: 'kDSPI_SckToSin0Clock'
-    - quick_selection: 'QS_DSPI_1'
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
 dspi_rtos_handle_t SPI0_rtosHandle;
@@ -150,7 +149,7 @@ const dspi_master_config_t SPI0_config = {
   .whichCtar = kDSPI_Ctar0,
   .ctarConfig = {
     .baudRate = 500000UL,
-    .bitsPerFrame = 8UL,
+    .bitsPerFrame = 16UL,
     .cpol = kDSPI_ClockPolarityActiveHigh,
     .cpha = kDSPI_ClockPhaseFirstEdge,
     .direction = kDSPI_MsbFirst,
