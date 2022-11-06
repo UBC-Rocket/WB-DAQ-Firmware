@@ -2,7 +2,7 @@
 #include "stdio.h"
 
 uint8_t masterReceiveBuffer[TRANSFER_SIZE] = {0};
-uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b00011000, 0b10111101};
+uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b00000000000011000, 0b10111101};
 
 
 dspi_transfer_t masterXfer;
@@ -33,7 +33,7 @@ void switchSignal(void *pv) {
     masterXfer.txData      = masterSendBuffer;
     masterXfer.rxData      = masterReceiveBuffer;
     masterXfer.dataSize    = TRANSFER_SIZE;
-    masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs1 | kDSPI_MasterPcsContinuous;        // why was this kDSPI_MasterPcs0
+    masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs0 | kDSPI_MasterPcsContinuous;        // why was this kDSPI_MasterPcs0
 
     status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
 
@@ -58,6 +58,11 @@ void switchSignal(void *pv) {
 			printf(" %d ", masterXfer.txData[i]);
 		}
 		printf("\n");
+		printf("RX: ");
+				for(int i = 0; i < TRANSFER_SIZE; ++i){
+					printf(" %d ", masterXfer.rxData[i]);
+				}
+				printf("\n");
 		vTaskDelay(pdMS_TO_TICKS(100));
 	}
 

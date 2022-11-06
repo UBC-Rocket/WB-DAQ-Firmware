@@ -15,7 +15,7 @@
 #define EXAMPLE_DSPI_MASTER_BASEADDR ((SPI_Type *)EXAMPLE_DSPI_MASTER_BASE)
 
 
-#define TRANSFER_SIZE     (4)     /*! Transfer size */
+#define TRANSFER_SIZE     (16)     /*! Transfer size */
 #define TRANSFER_BAUDRATE (500000U) /*! Transfer baudrate - 500k */
 
 
