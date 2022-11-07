@@ -1,8 +1,8 @@
 #include "highside_switch.h"
 #include "stdio.h"
 
-uint8_t masterReceiveBuffer[TRANSFER_SIZE];// = {0};
-uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b0000000000001100};
+uint8_t masterReceiveBuffer[TRANSFER_SIZE] = {0};
+uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0}; // 0b0000010100000000
 
 dspi_transfer_t masterXfer;
 dspi_rtos_handle_t master_rtos_handle;
@@ -34,11 +34,18 @@ void switchSignal(void *pv) {
     masterXfer.dataSize    = TRANSFER_SIZE;
     masterXfer.configFlags = kDSPI_MasterCtar0 | kDSPI_MasterPcs0 | kDSPI_MasterPcsContinuous;        // why was this kDSPI_MasterPcs0
 
+    // changes to tx data have to be assigned here
+
+    // register address
+    masterXfer.txData[5] = 1;
+    // PWM on
+    masterXfer.txData[7] = 1;
+
     status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
 
-    printf("RX: ");
+    printf("TX: ");
     for(int i = 0; i < TRANSFER_SIZE; ++i){
-    	printf(" %d ", masterXfer.rxData[i]);
+    	printf(" %d ", masterXfer.txData[i]);
     }
     printf("\n");
 
@@ -52,7 +59,9 @@ void switchSignal(void *pv) {
 		//masterXfer.txData[1] ^= 1UL << 6;
 
         // Toggle the Watchdog Bit of the TX Data
-        masterXfer.txData[1] ^=  1UL << 16;
+        masterXfer.txData[0] ^=  1UL << 0;
+        // Toggle the parity for testing should be assigned to a function to work properly
+        masterXfer.txData[1] ^=  1UL << 0;
 
 		status = DSPI_RTOS_Transfer(&master_rtos_handle, &masterXfer);
 		printf("TX: ");
