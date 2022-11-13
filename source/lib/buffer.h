@@ -24,7 +24,7 @@ struct mBuffer {
     /// @brief The index where we will insert the next item into the circular buffer
     uint8_t end;
     /// @brief The size of the buffer
-    uint8_t size;
+    uint16_t size;
     /// @brief Lock for thread safety
     SemaphoreHandle_t lock;
 };

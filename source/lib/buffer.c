@@ -9,6 +9,7 @@ void mBufferInit(struct mBuffer *buf) {
 void mBufferPush(struct mBuffer *buf, message_t m) {
     xSemaphoreTakeRecursive(buf->lock, 0);
     // put message at buf->end and increment buf->end
+    // no need to roll over at end of buffer, taken care of overflow
     buf->buf[buf->end++] = m;
     if (buf->size == 256) {
         buf->front++;
