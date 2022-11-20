@@ -80,10 +80,6 @@ void ControlTask(void *pv) {
 		sensor_old = sensor;
 		sensor = adcRead();
 
-
-		sprintf(data_out, "%s, %f, %d, %d, %f\r", message, sensor*pressureScaling, duty_cycle, period, kp);
-		SEGGER_RTT_WriteString(0, data_out);
-
 		//sprintf(data_out, "%f\t\t %d\r", sensor*pressureScaling, duty_cycle);
 		//SEGGER_RTT_WriteString(0, data_out);
 

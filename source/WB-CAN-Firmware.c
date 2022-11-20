@@ -29,6 +29,12 @@
 #include "fsl_i2c.h"
 #include "fsl_i2c_freertos.h"
 
+#include "SEGGER_RTT.h"
+
+#include "message_types.h"
+#include "buffer.h"
+
+
 /*******************************************************************************
  * Definitions
  ******************************************************************************/
@@ -58,6 +64,9 @@ int main(void) {
 
 
     BaseType_t error;
+
+	// initialize mBuffer
+	mBufferInit(&mBuf);
 
     // Create the BlinkTest
     if ((error = xTaskCreate(blinkTask,
@@ -100,7 +109,7 @@ int main(void) {
 		512,
 		NULL,
 		0,
-		NULL)) != pdPASS) {
+		&actuator_task)) != pdPASS) {
 			printf("Task init failed: %ld\n", error);
 			for (;;)
 				;

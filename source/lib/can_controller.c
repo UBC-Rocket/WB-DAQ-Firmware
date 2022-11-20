@@ -1,5 +1,6 @@
 #include "can_controller.h"
 
+extern struct mBuffer mBuf;
 
 SemaphoreHandle_t semaphore_Message;
 SemaphoreHandle_t semaphore_PWMActive;
@@ -15,36 +16,34 @@ message_t message;
 void mainTask(void *pv){
 
 	// Create Semaphores:
-    semaphore_Message = xSemaphoreCreateBinary();
     semaphore_PWMActive = xSemaphoreCreateBinary();
-
+	message_t working_buf[256];
+	int8_t working_buf_size;
 
     // Forever Loop:
 	for(;;){
 		vTaskDelay(pdMS_TO_TICKS(200));
 
-		// Wait for message
-		while(uxSemaphoreGetCount(semaphore_Message) == 0){
-		};
-
-		// Semaphore is Available, so now we can take it and read the message:
-		xSemaphoreTake(semaphore_Message, 10);
+		xSemaphoreTakeRecursive(mBuf.lock, 0);
+		working_buf_size = mBuf.size;
+		for (int i = 0; i < working_buf_size; i++) {
+			working_buf[i] = mBufferPop(&mBuf);
+		}
+		xSemaphoreGiveRecursive(mBuf.lock);
 
 		// Feature Setting Logic:
-		switch(message){
-			case PWM_Pause:
-				xSemaphoreTake( semaphore_PWMActive, 10 );
-				printf("Command Executed: PWM_Pause.\n");
-				break;
-			case PWM_Resume:
-				xSemaphoreGive(semaphore_PWMActive);
-				printf("Command Executed: PWM_Resume.\n");
-				break;
-			case No_Command:
-				break;
+		for (int i = 0; i < working_buf_size; i++) {
+			switch(working_buf[i]){
+				case PWM_Pause:
+					vTaskSuspend(actuator_task);
+					break;
+				case PWM_Resume:
+					vTaskResume(actuator_task);
+					break;
+				case No_Command:
+					break;
+			}
 		}
-		message = No_Command;
-		xSemaphoreGive(semaphore_Message);
 	}
 
 }

@@ -1,30 +1,14 @@
 #include "pwm.h"
 
-
-
+TaskHandle_t actuator_task;
 
 uint32_t duty_cycle = 10;
 uint32_t period = 100;
 
-void PWM(uint32_t period, uint32_t duty);
-
-void actuatorTask(void *pv){
-	for(;;){
-		if (uxSemaphoreGetCount( semaphore_PWMActive ) == 1) {
-			PWM(period, duty_cycle); // Uses Global Variable changed in Control Task
-		}
-		else if(uxSemaphoreGetCount( semaphore_PWMActive ) == 0){
-			printf("Waiting for Semaphore\n");
-			vTaskDelay(pdMS_TO_TICKS(1000));
-		}
-	}
-}
-
-
 // PWM
 //	- Duty cycle uint32 between 0 and 100
 //
-void PWM(uint32_t period, uint32_t duty){
+static void PWM(uint32_t period, uint32_t duty){
 	if (duty < 0 || duty > 100){
 		printf("Entered Duty Cycle is out of bounds. \n");
 		for(;;){
@@ -45,4 +29,11 @@ void PWM(uint32_t period, uint32_t duty){
 	// Turn off:
 	GPIO_PortClear(VALVE_PIN, VALVE_PIN_MASK);
 	vTaskDelay(pdMS_TO_TICKS(t1));
+}
+
+void actuatorTask(void *pv){
+
+	for(;;){
+		PWM(period, duty_cycle);
+	}
 }

@@ -16,6 +16,7 @@
 
 extern uint32_t duty_cycle;
 extern uint32_t period;
+extern TaskHandle_t actuator_task;
 
 void actuatorTask(void *pv);
 

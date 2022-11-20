@@ -26,17 +26,15 @@ void rttReceive(void *pv) {
 
 		i = SEGGER_RTT_Read(0, buffer, BUFFER_SIZE);
 		buffer[i]= '\0';
+
+		// TODO: Make this a switch or something easier to read
 		if(i != 0){
 			if( strcmp(buffer, "p") == 0){
-				xSemaphoreTake(semaphore_Message, 10);
-				message = PWM_Pause;
-				xSemaphoreGive(semaphore_Message);
+				mBufferPush(&mBuf, PWM_Pause);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Pause Command./n");
 			}
 			else if( strcmp(buffer, "o") == 0){
-				xSemaphoreTake(semaphore_Message, 10);
-				message = PWM_Resume;
-				xSemaphoreGive(semaphore_Message);
+				mBufferPush(&mBuf, PWM_Resume);
 				SEGGER_RTT_WriteString(0, "Success: Received PWM_Resume Command./n");
 			}
 			// PWM Period
@@ -50,8 +48,9 @@ void rttReceive(void *pv) {
 				printf("KP=%d\n\r", kp);
 			}
 			else{
-				period = strtol(buffer, NULL, 10);
-				printf("P=%d\n\r", period);
+				//period = strtol(buffer, NULL, 10);
+				//printf("P=%d\n\r", period);
+				printf("no command for the given message");
 			}
 			printf("%s\n", buffer);
 		}
