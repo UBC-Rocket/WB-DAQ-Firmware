@@ -7,7 +7,7 @@
 #include <string.h>
 #include <semphr.h>
 #include "pwm.h"
-#include <can_controller.h>
+#include "can_controller.h"
 #include "pid.h"
 
 

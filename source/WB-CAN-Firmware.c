@@ -6,12 +6,12 @@
  * Includes
  ******************************************************************************/
 /// Need to put it back into the source folder
-#include "adc.h"
-#include "tc.h"
-#include "rtt.h"
-#include "pwm.h"
-#include "pid.h"
-#include "can_controller.h"
+#include <tasks/adc.h>
+#include <tasks/tc.h>
+#include <tasks/rtt.h>
+#include <tasks/pwm.h>
+#include <tasks/pid.h>
+#include <tasks/can_controller.h>
 #include <stdio.h>
 #include "board.h"
 #include "peripherals.h"
