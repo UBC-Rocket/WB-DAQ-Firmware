@@ -1,7 +1,5 @@
 #include "can_controller.h"
 
-extern struct mBuffer mBuf;
-
 SemaphoreHandle_t semaphore_Message;
 SemaphoreHandle_t semaphore_PWMActive;
 

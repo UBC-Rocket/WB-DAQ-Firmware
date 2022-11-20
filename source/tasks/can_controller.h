@@ -4,13 +4,12 @@
 #include <FreeRTOS.h>
 #include <semphr.h>
 #include <stdio.h>
-#include "buffer.h"
+#include <lib/buffer.h>
 // Initialize Semaphores:
 extern SemaphoreHandle_t semaphore_Message;
 extern SemaphoreHandle_t semaphore_PWMActive;
 
 extern TaskHandle_t actuator_task;
-
 
 void mainTask(void *pv);
 
