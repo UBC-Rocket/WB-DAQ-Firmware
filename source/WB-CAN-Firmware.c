@@ -6,7 +6,7 @@
  * Includes
  ******************************************************************************/
 /// Need to put it back into the source folder
-#include <tasks/adc.h>
+#include <lib/adc.h>
 #include <tasks/tc.h>
 #include <tasks/rtt.h>
 #include <tasks/pwm.h>
@@ -30,9 +30,6 @@
 #include "fsl_i2c_freertos.h"
 
 #include "SEGGER_RTT.h"
-
-#include "message_types.h"
-#include "buffer.h"
 
 
 /*******************************************************************************

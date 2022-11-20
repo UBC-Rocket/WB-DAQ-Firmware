@@ -1,16 +1,13 @@
+#ifndef _ADC_H_
+#define _ADC_H_
 
 #include "board.h"
 
 // ADC Interrupt:
 
-
-
 /*******************************************************************************
  * ADC Prototypes and Interrupt Variables
  ******************************************************************************/
-
-
-
 #define ADC16_BASE          ADC0
 #define ADC16_CHANNEL_GROUP 0U
 // This sets what ADC Signal you are using:
@@ -26,3 +23,5 @@ void configureADC (void);
 
 //void adcSetup(adc16_config_t, adc16_channel_config_t);
 float adcRead(void);
+
+#endif /*_ADC_H_*/
