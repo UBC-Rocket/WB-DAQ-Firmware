@@ -26,3 +26,21 @@ void configureADC (void);
 
 //void adcSetup(adc16_config_t, adc16_channel_config_t);
 float adcRead(void);
+
+
+
+/*
+ * SPI1 ADC
+ * */
+#define ADC_DSPI1_BASE 			(SPI1_BASE)
+#define ADC_DSPI1_IRQN 			(SPI1_IRQn)
+#define ADC_DSPI1_CLK_SRC      	(DSPI1_CLK_SRC)
+#define ADC_DSPI1_CLK_FREQ     	CLOCK_GetFreq((DSPI1_CLK_SRC))
+#define ADC_DSPI1_BASEADDR 		((SPI_Type *)SPI1_BASE)
+
+
+#define TRANSFER_SIZE     (16)     /*! Transfer size */
+#define TRANSFER_BAUDRATE (500000U) /*! Transfer baudrate - 500k */
+
+
+void adc_spi(void *pv);

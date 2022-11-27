@@ -50,6 +50,8 @@ BOARD_InitPins:
   - {pin_num: '90', peripheral: SPI1, signal: PCS1, pin_signal: PTB9/SPI1_PCS1/UART3_CTS_b/FB_AD20/SDRAM_D20}
   - {pin_num: '91', peripheral: SPI1, signal: PCS0_SS, pin_signal: ADC1_SE14/PTB10/SPI1_PCS0/UART3_RX/FB_AD19/SDRAM_D19/FTM0_FLT1}
   - {pin_num: '92', peripheral: SPI1, signal: SCK, pin_signal: ADC1_SE15/PTB11/SPI1_SCK/UART3_TX/FB_AD18/SDRAM_D18/FTM0_FLT2}
+  - {pin_num: '8', peripheral: SPI1, signal: PCS2, pin_signal: PTE5/SPI1_PCS2/UART3_RX/SDHC0_D2/FTM3_CH0}
+  - {pin_num: '9', peripheral: SPI1, signal: PCS3, pin_signal: PTE6/LLWU_P16/SPI1_PCS3/UART3_CTS_b/I2S0_MCLK/FTM3_CH1/USB0_SOF_OUT}
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS ***********
  */
 /* clang-format on */
@@ -107,6 +109,12 @@ void BOARD_InitPins(void)
 
     /* PORTE25 (pin 46) is configured as ADC0_SE18 */
     PORT_SetPinMux(PORTE, 25U, kPORT_PinDisabledOrAnalog);
+
+    /* PORTE5 (pin 8) is configured as SPI1_PCS2 */
+    PORT_SetPinMux(PORTE, 5U, kPORT_MuxAlt2);
+
+    /* PORTE6 (pin 9) is configured as SPI1_PCS3 */
+    PORT_SetPinMux(PORTE, 6U, kPORT_MuxAlt2);
 }
 /***********************************************************************************************************************
  * EOF

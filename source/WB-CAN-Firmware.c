@@ -111,7 +111,8 @@ int main(void) {
     NVIC_SetPriority(TC_I2C1_IRQN, 3);
     NVIC_SetPriority(TC_I2C3_IRQN, 3);
 
-	NVIC_SetPriority(EXAMPLE_DSPI_MASTER_IRQN, 3);
+	NVIC_SetPriority(EXAMPLE_DSPI_MASTER_IRQN, 3); 	// For HS Switches using SPI0
+	NVIC_SetPriority(ADC_DSPI1_IRQN, 3); 			// For ADCs using SPI1
 
 
     BaseType_t error;
@@ -174,7 +175,7 @@ int main(void) {
         	    ;
         };
 
-	if ((error =  xTaskCreate(switchSignal, 
+	if ((error =  xTaskCreate(adc_spi,
 		"Master_task", 
 		512, 
 		NULL, 

@@ -51,6 +51,7 @@ extern const adc16_channel_mux_mode_t ADC0_muxMode;
 extern const adc16_hardware_average_mode_t ADC0_hardwareAverageMode;
 extern dspi_rtos_handle_t SPI0_rtosHandle;
 extern const dspi_master_config_t SPI0_config;
+extern dspi_rtos_handle_t SPI1_rtosHandle;
 extern const dspi_master_config_t SPI1_config;
 
 /***********************************************************************************************************************

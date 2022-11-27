@@ -178,7 +178,7 @@ static void SPI0_init(void) {
 instance:
 - name: 'SPI1'
 - type: 'dspi'
-- mode: 'DSPI_Polling'
+- mode: 'freertos'
 - custom_name_enabled: 'false'
 - type_id: 'dspi_305e5b03c593d065f61ded8061d15797'
 - functional_group: 'BOARD_InitPeripherals'
@@ -188,6 +188,8 @@ instance:
     - dspi_mode: 'kDSPI_Master'
     - clockSource: 'BusInterfaceClock'
     - clockSourceFreq: 'GetFreq'
+    - rtos_handle:
+      - enable_custom_name: 'false'
     - dspi_master_config:
       - whichCtar: 'kDSPI_Ctar0'
       - ctarConfig:
@@ -208,6 +210,7 @@ instance:
     - quick_selection: 'QS_DSPI_1'
  * BE CAREFUL MODIFYING THIS COMMENT - IT IS YAML SETTINGS FOR TOOLS **********/
 /* clang-format on */
+dspi_rtos_handle_t SPI1_rtosHandle;
 const dspi_master_config_t SPI1_config = {
   .whichCtar = kDSPI_Ctar0,
   .ctarConfig = {
@@ -230,7 +233,7 @@ const dspi_master_config_t SPI1_config = {
 
 static void SPI1_init(void) {
   /* Initialization function */
-  DSPI_MasterInit(SPI1_PERIPHERAL, &SPI1_config, SPI1_CLK_FREQ);
+  DSPI_RTOS_Init(&SPI1_rtosHandle, SPI1_PERIPHERAL, &SPI1_config, SPI1_CLK_FREQ);
 }
 
 /***********************************************************************************************************************

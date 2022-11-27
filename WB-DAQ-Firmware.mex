@@ -72,6 +72,8 @@
                   <pin peripheral="SPI1" signal="PCS1" pin_num="90" pin_signal="PTB9/SPI1_PCS1/UART3_CTS_b/FB_AD20/SDRAM_D20"/>
                   <pin peripheral="SPI1" signal="PCS0_SS" pin_num="91" pin_signal="ADC1_SE14/PTB10/SPI1_PCS0/UART3_RX/FB_AD19/SDRAM_D19/FTM0_FLT1"/>
                   <pin peripheral="SPI1" signal="SCK" pin_num="92" pin_signal="ADC1_SE15/PTB11/SPI1_SCK/UART3_TX/FB_AD18/SDRAM_D18/FTM0_FLT2"/>
+                  <pin peripheral="SPI1" signal="PCS2" pin_num="8" pin_signal="PTE5/SPI1_PCS2/UART3_RX/SDHC0_D2/FTM3_CH0"/>
+                  <pin peripheral="SPI1" signal="PCS3" pin_num="9" pin_signal="PTE6/LLWU_P16/SPI1_PCS3/UART3_CTS_b/I2S0_MCLK/FTM3_CH1/USB0_SOF_OUT"/>
                </pins>
             </function>
          </functions_list>
@@ -235,6 +237,16 @@
                         <data type="Boolean">true</data>
                      </feature>
                   </dependency>
+                  <dependency resourceType="SWComponent" resourceId="platform.drivers.dspi_freertos" description="The fsl_dspi_freertos driver is missing in the project (required for the FreeRTOS mode)." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="enabled" evaluation="equal">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="SWComponent" resourceId="platform.drivers.dspi_freertos" description="The compatible version of the fsl_dspi_freertos driver is not available in the project (required for the FreeRTOS mode)." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="version" evaluation="compatible">
+                        <data type="Version">2.2.0</data>
+                     </feature>
+                  </dependency>
                   <dependency resourceType="ClockOutput" resourceId="Bus_clock" description="Bus clock is inactive." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
                      <feature name="frequency" evaluation="greaterThan">
                         <data type="Frequency" unit="Hz">0</data>
@@ -304,11 +316,14 @@
                         </struct>
                      </config_set>
                   </instance>
-                  <instance name="SPI1" uuid="3b3a7bdc-4ea4-47b6-a698-6bac7945a539" type="dspi" type_id="dspi_305e5b03c593d065f61ded8061d15797" mode="DSPI_Polling" peripheral="SPI1" enabled="true" comment="" custom_name_enabled="false">
+                  <instance name="SPI1" uuid="3b3a7bdc-4ea4-47b6-a698-6bac7945a539" type="dspi" type_id="dspi_305e5b03c593d065f61ded8061d15797" mode="freertos" peripheral="SPI1" enabled="true" comment="" custom_name_enabled="false">
                      <config_set name="fsl_dspi" quick_selection="QS_DSPI_1">
                         <setting name="dspi_mode" value="kDSPI_Master"/>
                         <setting name="clockSource" value="BusInterfaceClock"/>
                         <setting name="clockSourceFreq" value="GetFreq"/>
+                        <struct name="rtos_handle">
+                           <setting name="enable_custom_name" value="false"/>
+                        </struct>
                         <struct name="dspi_master_config">
                            <setting name="whichCtar" value="kDSPI_Ctar0"/>
                            <struct name="ctarConfig">

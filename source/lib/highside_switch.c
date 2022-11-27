@@ -2,17 +2,20 @@
 #include "stdio.h"
 
 uint8_t masterReceiveBuffer[TRANSFER_SIZE];// = {0};
-uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b0000000000001100};
+uint8_t masterSendBuffer[TRANSFER_SIZE]    = {0b1100000000001111};
 
-dspi_transfer_t masterXfer;
-dspi_rtos_handle_t master_rtos_handle;
-dspi_master_config_t masterConfig;
-uint32_t sourceClock;
-status_t status;
-SemaphoreHandle_t dspi_sem;
 
 
 void switchSignal(void *pv) {
+
+	dspi_transfer_t masterXfer;
+	dspi_rtos_handle_t master_rtos_handle;
+	dspi_master_config_t masterConfig;
+	uint32_t sourceClock;
+	status_t status;
+	SemaphoreHandle_t dspi_sem;
+
+
     dspi_sem = xSemaphoreCreateBinary();
     DSPI_MasterGetDefaultConfig(&masterConfig);
 
