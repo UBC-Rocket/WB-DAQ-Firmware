@@ -484,6 +484,7 @@ static float readTc(i2c_rtos_handle_t *handle, uint8_t slaveAddress){
 	uint8_t buf[2] = {0};
 
 	// Send a write command with value Th = 0x00
+	// Hot junction 0b00000000, delta Junction = 0b00000001, Cold junction = 0b00000010
 	buf[0] = 0b00000000;
 
 	memset(&transfer, 0, sizeof(transfer));
