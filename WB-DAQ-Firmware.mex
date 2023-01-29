@@ -37,6 +37,16 @@
                   <enableClock>true</enableClock>
                </options>
                <dependencies>
+                  <dependency resourceType="Peripheral" resourceId="I2C1" description="Peripheral I2C1 is not initialized" problem_level="1" source="Pins:BOARD_InitPins">
+                     <feature name="initialized" evaluation="equal">
+                        <data>true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="Peripheral" resourceId="I2C3" description="Peripheral I2C3 is not initialized" problem_level="1" source="Pins:BOARD_InitPins">
+                     <feature name="initialized" evaluation="equal">
+                        <data>true</data>
+                     </feature>
+                  </dependency>
                   <dependency resourceType="Peripheral" resourceId="ADC0" description="Peripheral ADC0 is not initialized" problem_level="1" source="Pins:BOARD_InitPins">
                      <feature name="initialized" evaluation="equal">
                         <data>true</data>
@@ -71,6 +81,34 @@
                         <pin_feature name="identifier" value="HS_SWITCH_B_IN1"/>
                         <pin_feature name="direction" value="OUTPUT"/>
                         <pin_feature name="gpio_init_state" value="false"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="I2C1" signal="SCL" pin_num="115" pin_signal="ADC1_SE6b/PTC10/I2C1_SCL/FTM3_CH6/I2S0_RX_FS/FB_AD5/SDRAM_A13">
+                     <pin_features>
+                        <pin_feature name="open_drain" value="enable"/>
+                        <pin_feature name="pull_select" value="up"/>
+                        <pin_feature name="pull_enable" value="enable"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="I2C1" signal="SDA" pin_num="116" pin_signal="ADC1_SE7b/PTC11/LLWU_P11/I2C1_SDA/FTM3_CH7/I2S0_RXD1/FB_RW_b">
+                     <pin_features>
+                        <pin_feature name="open_drain" value="enable"/>
+                        <pin_feature name="pull_select" value="up"/>
+                        <pin_feature name="pull_enable" value="enable"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="I2C3" signal="SCL" pin_num="14" pin_signal="PTE11/I2C3_SCL/I2S0_TX_FS/LPUART0_RTS_b/FTM3_CH6">
+                     <pin_features>
+                        <pin_feature name="open_drain" value="enable"/>
+                        <pin_feature name="pull_select" value="up"/>
+                        <pin_feature name="pull_enable" value="enable"/>
+                     </pin_features>
+                  </pin>
+                  <pin peripheral="I2C3" signal="SDA" pin_num="13" pin_signal="PTE10/LLWU_P18/I2C3_SDA/I2S0_TXD0/LPUART0_CTS_b/FTM3_CH5/USB1_ID">
+                     <pin_features>
+                        <pin_feature name="open_drain" value="enable"/>
+                        <pin_feature name="pull_select" value="up"/>
+                        <pin_feature name="pull_enable" value="enable"/>
                      </pin_features>
                   </pin>
                   <pin peripheral="ADC0" signal="SE, 18" pin_num="46" pin_signal="ADC0_SE18/PTE25/LLWU_P21/CAN1_RX/UART4_RX/I2C0_SDA/EWM_IN"/>
@@ -159,6 +197,16 @@
                   <data type="Version">2.1.0</data>
                </feature>
             </dependency>
+            <dependency resourceType="SWComponent" resourceId="platform.drivers.i2c" description="I2C Driver not found in the toolchain/IDE project. Project will not compile!" problem_level="2" source="Peripherals">
+               <feature name="enabled" evaluation="equal">
+                  <data type="Boolean">true</data>
+               </feature>
+            </dependency>
+            <dependency resourceType="SWComponent" resourceId="platform.drivers.i2c" description="Unsupported version of the I2C Driver in the toolchain/IDE project. Required: ${required_value}, actual: ${actual_value}. Project might not compile correctly." problem_level="1" source="Peripherals">
+               <feature name="version" evaluation="equivalent">
+                  <data type="Version">2.0.5</data>
+               </feature>
+            </dependency>
          </dependencies>
          <generated_project_files>
             <file path="board/peripherals.c" update_enabled="true"/>
@@ -171,7 +219,38 @@
             <functional_group name="BOARD_InitPeripherals" uuid="003e09be-8246-4dfc-8d8b-7814e2a4e030" called_from_default_init="true" id_prefix="" core="core0">
                <description></description>
                <options/>
-               <dependencies/>
+               <dependencies>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="I2C1.i2c_scl" description="Signal serial clock of the peripheral I2C1 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="I2C1.i2c_sda" description="Signal serial data of the peripheral I2C1 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="ClockOutput" resourceId="Bus_clock" description="Bus clock is inactive." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="frequency" evaluation="greaterThan">
+                        <data type="Frequency" unit="Hz">0</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="I2C3.i2c_scl" description="Signal serial clock of the peripheral I2C3 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="PeripheralUnifiedSignal" resourceId="I2C3.i2c_sda" description="Signal serial data of the peripheral I2C3 is not routed." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="routed" evaluation="">
+                        <data type="Boolean">true</data>
+                     </feature>
+                  </dependency>
+                  <dependency resourceType="ClockOutput" resourceId="Bus_clock" description="Bus clock is inactive." problem_level="1" source="Peripherals:BOARD_InitPeripherals">
+                     <feature name="frequency" evaluation="greaterThan">
+                        <data type="Frequency" unit="Hz">0</data>
+                     </feature>
+                  </dependency>
+               </dependencies>
                <instances>
                   <instance name="ADC0" uuid="1ffa8f96-a482-4488-bfc8-e16f973e73e1" type="adc16" type_id="adc16_7a29cdeb84266e77f0c7ceac1b49fe2d" mode="ADC" peripheral="ADC0" enabled="true" comment="" custom_name_enabled="false">
                      <config_set name="fsl_adc16" quick_selection="QS_ADC16_1">
@@ -204,6 +283,32 @@
                            <setting name="enable_custom_name" value="false"/>
                         </struct>
                         <array name="adc16_channels_config"/>
+                     </config_set>
+                  </instance>
+                  <instance name="I2C1" uuid="976dfa3d-7e12-424f-96a2-166339de9ac9" type="i2c" type_id="i2c_2566d7363e7e9aaedabb432110e372d7" mode="I2C_Polling" peripheral="I2C1" enabled="true" comment="" custom_name_enabled="false">
+                     <config_set name="fsl_i2c" quick_selection="QS_I2C_1">
+                        <setting name="i2c_mode" value="kI2C_Master"/>
+                        <setting name="clockSource" value="BusInterfaceClock"/>
+                        <setting name="clockSourceFreq" value="GetFreq"/>
+                        <struct name="i2c_master_config">
+                           <setting name="enableMaster" value="true"/>
+                           <setting name="enableStopHold" value="false"/>
+                           <setting name="baudRate_Bps" value="100000"/>
+                           <setting name="glitchFilterWidth" value="0"/>
+                        </struct>
+                     </config_set>
+                  </instance>
+                  <instance name="I2C3" uuid="7b2d7a91-40c6-43b6-9d6c-944a4bc34100" type="i2c" type_id="i2c_2566d7363e7e9aaedabb432110e372d7" mode="I2C_Polling" peripheral="I2C3" enabled="true" comment="" custom_name_enabled="false">
+                     <config_set name="fsl_i2c" quick_selection="QS_I2C_1">
+                        <setting name="i2c_mode" value="kI2C_Master"/>
+                        <setting name="clockSource" value="BusInterfaceClock"/>
+                        <setting name="clockSourceFreq" value="GetFreq"/>
+                        <struct name="i2c_master_config">
+                           <setting name="enableMaster" value="true"/>
+                           <setting name="enableStopHold" value="false"/>
+                           <setting name="baudRate_Bps" value="100000"/>
+                           <setting name="glitchFilterWidth" value="0"/>
+                        </struct>
                      </config_set>
                   </instance>
                </instances>
